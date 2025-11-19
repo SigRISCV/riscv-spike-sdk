@@ -211,7 +211,7 @@ LLVM_CROSS_LDFLAGS := -target riscv64-unknown-freebsd16 \
 			--ld-path=$(toolchain_dest)/bin/ld.lld
 
 .PHONY: lmbench
-lmbench: $(lmbench_srcdir)
+lmbench: $(lmbench_srcdir) $(freebsd_rootfs)
 	make -C $(lmbench_srcdir) build \
 		OS=riscv-FreeBSD \
 		$(LLVM_CROSS_TOOLCHAIN) \
@@ -221,7 +221,7 @@ lmbench: $(lmbench_srcdir)
 	cp -r $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(freebsd_bench)/lmbench/
 
 .PHONY: unixbench
-unixbench: $(unixbench_srcdir)
+unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
 	make -C $(unixbench_srcdir) \
 		OSNAME=freebsd ARCHNAME=$(ISA) \
 		$(LLVM_CROSS_TOOLCHAIN) \
@@ -244,7 +244,7 @@ LLVM_CROSS_COMPILE_ARGS := CC='$(toolchain_dest)/bin/clang $(LLVM_CROSS_CFLAGS) 
 		LDFLAGS='$(LLVM_CROSS_LDFLAGS)'
 
 .PHONY: gmp-cross
-gmp-cross $(gmp_lib): $(gmp_srcdir)
+gmp-cross $(gmp_lib): $(gmp_srcdir) $(freebsd_rootfs)
 	mkdir -p $(gmp_wrkdir)
 	cd $(gmp_srcdir) && ./.bootstrap
 	cd $(gmp_wrkdir) && $</configure \
@@ -255,7 +255,7 @@ gmp-cross $(gmp_lib): $(gmp_srcdir)
 	cd $(gmp_wrkdir) && $(MAKE) install
 
 .PHONY: mpfr-cross
-mpfr-cross $(mpfr_lib): $(mpfr_srcdir)
+mpfr-cross $(mpfr_lib): $(mpfr_srcdir) $(freebsd_rootfs)
 	mkdir -p $(mpfr_wrkdir)
 	cd $(mpfr_srcdir) && ./autogen.sh
 	cd $(mpfr_wrkdir) && $</configure \
@@ -292,7 +292,7 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
 	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
 
-fw_image $(fw_jump): $(opensbi_srcdir)
+fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 	rm -rf $(opensbi_wrkdir)
 	mkdir -p $(opensbi_wrkdir)
 	$(MAKE) -C $(opensbi_srcdir) FW_TEXT_START=0x80000000 \
@@ -340,14 +340,14 @@ mrproper:
 
 .PHONY: qemu-run
 
-qemu-run: $(qemu) $(fw_jump)
+qemu-run: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
 		-kernel $(freebsd_kernel) \
 		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
 		-device virtio-blk-device,drive=drv \
 		-device virtio-rng-pci
 
-qemu-debug: $(qemu) $(fw_jump)
+qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
 		-kernel $(freebsd_kernel) \
 		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
