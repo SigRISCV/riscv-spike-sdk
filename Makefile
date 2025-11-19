@@ -42,13 +42,6 @@ freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
 
-buildroot_srcdir := $(srcdir)/buildroot
-buildroot_initramfs_wrkdir := $(topdir)/rootfs/buildroot_initramfs
-buildroot_initramfs_tar := $(buildroot_initramfs_wrkdir)/images/rootfs.tar
-buildroot_initramfs_config := $(confdir)/buildroot_initramfs_config
-buildroot_initramfs_sysroot_stamp := $(wrkdir)/.buildroot_initramfs_sysroot
-buildroot_initramfs_sysroot := $(topdir)/rootfs/buildroot_initramfs_sysroot
-
 linux_srcdir := $(srcdir)/linux
 linux_wrkdir := $(wrkdir)/linux
 linux_defconfig := $(confdir)/linux_defconfig
@@ -326,25 +319,6 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 
 .PHONY: all
 all: $(vmlinux)
-
-$(buildroot_initramfs_wrkdir)/.config: $(buildroot_srcdir)
-	rm -rf $(dir $@)
-	mkdir -p $(dir $@)
-	cp $(buildroot_initramfs_config) $@
-	$(MAKE) -C $< RISCV=$(RISCV) PATH="$(PATH)" O=$(buildroot_initramfs_wrkdir) olddefconfig CROSS_COMPILE=riscv64-unknown-linux-gnu-
-
-$(buildroot_initramfs_tar): $(buildroot_srcdir) $(buildroot_initramfs_wrkdir)/.config $(RISCV)/bin/$(target_linux)-gcc $(buildroot_initramfs_config)
-	$(MAKE) -C $< RISCV=$(RISCV) PATH="$(PATH)" O=$(buildroot_initramfs_wrkdir)
-
-.PHONY: buildroot_initramfs-menuconfig
-buildroot-menuconfig: $(buildroot_initramfs_wrkdir)/.config $(buildroot_srcdir)
-	$(MAKE) -C $(dir $<) O=$(buildroot_initramfs_wrkdir) menuconfig
-	$(MAKE) -C $(dir $<) O=$(buildroot_initramfs_wrkdir) savedefconfig
-	cp $(dir $<)/defconfig conf/buildroot_initramfs_config
-
-$(buildroot_initramfs_sysroot): $(buildroot_initramfs_tar)
-	mkdir -p $(buildroot_initramfs_sysroot)
-	tar -xpf $< -C $(buildroot_initramfs_sysroot) --exclude ./dev --exclude ./usr/share/locale
 
 $(linux_wrkdir)/.config: $(linux_defconfig) $(linux_srcdir) $(toolchain_dest)/bin/$(target_linux)-gcc
 	mkdir -p $(dir $@)
