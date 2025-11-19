@@ -299,18 +299,6 @@ fw_image $(fw_jump): $(opensbi_srcdir)
 		PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 		LLVM=$(toolchain_dest)/bin/
 
-.PHONY: spike
-$(spike): $(spike_srcdir) 
-	rm -rf $(spike_wrkdir)
-	mkdir -p $(spike_wrkdir)
-	mkdir -p $(dir $@)
-	cd $(spike_wrkdir) && $</configure \
-		--prefix=$(dir $(abspath $(dir $@))) 
-	$(MAKE) -C $(spike_wrkdir)
-	$(MAKE) -C $(spike_wrkdir) install
-	touch -c $@
-spike: $(spike)
-
 .PHONY: qemu
 $(qemu): $(qemu_srcdir)
 	rm -rf $(qemu_wrkdir)
