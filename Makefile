@@ -137,7 +137,7 @@ buildworld $(freebsd_world_done): $(freebsd_srcdir) $(toolchain_dest)/bin/clang
 		$(FREEBSD_ARGS)
 	touch -c $(freebsd_world_done)
 
-buildkernel $(freebsd_kernel_full): $(freebsd_wrkdir) $(confdir)/QEMU $(toolchain_dest)/bin/clang
+buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/QEMU $(toolchain_dest)/bin/clang
 	rm -rf $(freebsd_kernel_full)
 	cp $(confdir)/QEMU $(freebsd_srcdir)/sys/riscv/conf/QEMU
 	cd $(freebsd_srcdir) && env $(FREEBSD_ENV) \
