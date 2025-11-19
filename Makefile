@@ -42,14 +42,6 @@ freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
 
-linux_srcdir := $(srcdir)/linux
-linux_wrkdir := $(wrkdir)/linux
-linux_defconfig := $(confdir)/linux_defconfig
-
-vmlinux := $(linux_wrkdir)/vmlinux
-vmlinux_stripped := $(linux_wrkdir)/vmlinux-stripped
-linux_image := $(linux_wrkdir)/arch/riscv/boot/Image
-
 DTS ?= $(abspath conf/$(BOARD).dts)
 pk_srcdir := $(srcdir)/riscv-pk
 pk_wrkdir := $(wrkdir)/riscv-pk
@@ -316,55 +308,7 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
 	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
-
-.PHONY: all
-all: $(vmlinux)
-
-$(linux_wrkdir)/.config: $(linux_defconfig) $(linux_srcdir) $(toolchain_dest)/bin/$(target_linux)-gcc
-	mkdir -p $(dir $@)
-	cp -p $< $@
-	$(MAKE) -C $(linux_srcdir) O=$(linux_wrkdir) ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- olddefconfig
-	echo $(ISA)
-	echo $(filter rv32%,$(ISA))
-ifeq (,$(filter rv%c,$(ISA)))
-	sed 's/^.*CONFIG_RISCV_ISA_C.*$$/CONFIG_RISCV_ISA_C=n/' -i $@
-	$(MAKE) -C $(linux_srcdir) O=$(linux_wrkdir) ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- olddefconfig
-endif
-ifeq ($(ISA),$(filter rv32%,$(ISA)))
-	sed 's/^.*CONFIG_ARCH_RV32I.*$$/CONFIG_ARCH_RV32I=y/' -i $@
-	sed 's/^.*CONFIG_ARCH_RV64I.*$$/CONFIG_ARCH_RV64I=n/' -i $@
-	$(MAKE) -C $(linux_srcdir) O=$(linux_wrkdir) ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- olddefconfig
-endif
-
-LINUX_EXTRA_ARGS :=
-ifeq ($(MODE),LLVM)
-	LINUX_EXTRA_ARGS += HOSTCC=gcc \
-		HOSTCXX=g++ \
-		$(LLVM_CROSS_TOOLCHAIN) \
-		LLVM=1 LLVM_IAS=1
-endif
-
-$(vmlinux): $(linux_srcdir) $(linux_wrkdir)/.config $(buildroot_initramfs_sysroot) 
-	$(MAKE) -C $< O=$(linux_wrkdir) \
-		CONFIG_INITRAMFS_SOURCE="$(confdir)/initramfs.txt $(buildroot_initramfs_sysroot)" \
-		CONFIG_INITRAMFS_ROOT_UID=$(shell id -u) \
-		CONFIG_INITRAMFS_ROOT_GID=$(shell id -g) \
-		CROSS_COMPILE=riscv64-unknown-linux-gnu- \
-		ARCH=riscv \
-		$(LINUX_EXTRA_ARGS) \
-		all
-
-$(vmlinux_stripped): $(vmlinux)
-	$(toolchain_dest)/bin/llvm-strip -o $@ $<
-
-$(linux_image): $(vmlinux)
-
-.PHONY: linux-menuconfig
-linux-menuconfig: $(linux_wrkdir)/.config
-	$(MAKE) -C $(linux_srcdir) O=$(dir $<) ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- menuconfig
-	$(MAKE) -C $(linux_srcdir) O=$(dir $<) ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- savedefconfig
-	# cp $(dir $<)/defconfig conf/linux_defconfig
-
+	
 $(bbl): $(pk_srcdir) $(vmlinux_stripped) $(DTS)
 	rm -rf $(pk_wrkdir)
 	mkdir -p $(pk_wrkdir)
