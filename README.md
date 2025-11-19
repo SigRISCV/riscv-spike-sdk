@@ -2,12 +2,12 @@
 
 We have implemented the RISC-V FreeBSD SDK based on Sycuricon's RISC-V SPIKE SDK. This SDK replaces the traditional riscv-linux-gnu-gcc with LLVM as the cross-compiler, supporting the simulation execution of the FreeBSD operating system. This SDK supports the latest versions of FreeBSD, LLVM, OpenSBI, QEMU, and other components. The core components are as follows:
 
-|       Folder        |      Description       |   Version   |
-| :-----------------: | :--------------------: | :---------: |
-|	repo/freebsd	  |  kernel and rootfs	   |  FREEBSD 16 |
-|   repo/opensbi      |  bootloader and sbi    |             |
-|	repo/qemu		  |  simulator             |             |
-|   repo/llvm-project |  compiler toolchain    |  clang 20.0 |
+|       Folder        |      Description       |   Version      |
+| :-----------------: | :--------------------: | :------------: |
+|	repo/freebsd	  |  kernel and rootfs	   |  FREEBSD 16    |
+|   repo/opensbi      |  bootloader and sbi    |  opensbi v1.7  |
+|	repo/qemu		  |  simulator             |  qemu 10.1.50  |
+|   repo/llvm-project |  compiler toolchain    |  clang 22.0.0  |
 
 ## Quickstart
 
