@@ -17,8 +17,6 @@ wrkdir := $(CURDIR)/build
 scriptdir := $(topdir)/scripts
 benchdir := $(topdir)/benchmark
 
-toolchain_srcdir := $(srcdir)/riscv-gnu-toolchain
-toolchain_wrkdir := $(wrkdir)/riscv-gnu-toolchain
 toolchain_dest := $(CURDIR)/toolchain
 
 llvm_srcdir	 :=	$(srcdir)/llvm-project
@@ -328,31 +326,6 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 
 .PHONY: all
 all: $(vmlinux)
-
-newlib: $(RISCV)/bin/$(target_newlib)-gcc
-
-
-ifneq ($(RISCV),$(toolchain_dest))
-$(RISCV)/bin/$(target_linux)-gcc:
-	$(error The RISCV environment variable was set, but is not pointing at a toolchain install tree)
-endif
-
-$(toolchain_dest)/bin/$(target_linux)-gcc:
-	mkdir -p $(toolchain_wrkdir)
-	$(MAKE) -C $(linux_srcdir) O=$(toolchain_wrkdir) ARCH=riscv INSTALL_HDR_PATH=$(abspath $(toolchain_srcdir)/linux-headers) headers_install
-	cd $(toolchain_wrkdir); $(toolchain_srcdir)/configure \
-		--prefix=$(toolchain_dest) \
-		--with-arch=$(ISA) \
-		--with-abi=$(ABI) 
-	$(MAKE) -C $(toolchain_wrkdir) linux
-	# sed 's/^#define LINUX_VERSION_CODE.*/#define LINUX_VERSION_CODE 329226/' -i $(toolchain_dest)/sysroot/usr/include/linux/version.h
-
-$(toolchain_dest)/bin/$(target_newlib)-gcc:
-	mkdir -p $(toolchain_wrkdir)
-	cd $(toolchain_wrkdir); $(toolchain_srcdir)/configure \
-		--prefix=$(toolchain_dest) \
-		--enable-multilib
-	$(MAKE) -C $(toolchain_wrkdir) 
 
 $(buildroot_initramfs_wrkdir)/.config: $(buildroot_srcdir)
 	rm -rf $(dir $@)
