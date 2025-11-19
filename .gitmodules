@@ -1,6 +1,3 @@
-[submodule "buildroot"]
-	path = repo/buildroot
-	url = https://github.com/buildroot/buildroot.git
 [submodule "riscv-pk"]
 	path = repo/riscv-pk
 	url = https://github.com/riscv/riscv-pk
