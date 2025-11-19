@@ -30,10 +30,10 @@
 	url = git@github.com:SigRISCV/freebsd-src.git
 [submodule "benchmark/lmbench"]
 	path = benchmark/lmbench
-	url = https://github.com/SigRISCV/lmbench.git
+	url = git@github.com:SigRISCV/lmbench.git
 [submodule "benchmark/unixbench"]
 	path = benchmark/unixbench
-	url = https://github.com/SigRISCV/unixbench.git
+	url = git@github.com:SigRISCV/unixbench.git
 [submodule "repo/gdb"]
 	path = repo/gdb
 	url = git@github.com:SigRISCV/gdb.git
