@@ -32,11 +32,9 @@ cd $root
 root="$(dirname "$(readlink -f "$0")")"
 NJOB=4
 
-root_repo_list=${ROOT_LIST:-"buildroot riscv-gnu-toolchain riscv-pk linux riscv-isa-sim"}
-toolchain_repo_list=${TOOLCHAIN_LIST:-"binutils gcc glibc newlib gdb"}
+root_repo_list=${ROOT_LIST:-"freebsd llvm-project opensbi qemu"}
 
 fetch_repo "$root/repo" "$root_repo_list" "--jobs $NJOB"
-fetch_repo "$root/repo/riscv-gnu-toolchain" "$toolchain_repo_list" "--recursive --jobs $NJOB"
 
 echo "[*] done"
 
