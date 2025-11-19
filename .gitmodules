@@ -1,6 +1,3 @@
-[submodule "riscv-pk"]
-	path = repo/riscv-pk
-	url = https://github.com/riscv/riscv-pk
 [submodule "riscv-isa-sim"]
 	path = repo/riscv-isa-sim
 	url = https://github.com/riscv/riscv-isa-sim
