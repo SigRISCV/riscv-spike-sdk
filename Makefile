@@ -4,9 +4,6 @@ RISCV ?= $(CURDIR)/toolchain
 PATH := $(RISCV)/bin:$(PATH)
 ISA ?= rv64imafdc_zifencei_zicsr
 ABI ?= lp64d
-BL ?= opensbi
-BOARD ?= spike
-MODE ?= GNU
 CMAKE := cmake
 
 topdir := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -41,12 +38,6 @@ freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
 
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
-
-DTS ?= $(abspath conf/$(BOARD).dts)
-pk_srcdir := $(srcdir)/riscv-pk
-pk_wrkdir := $(wrkdir)/riscv-pk
-bbl := $(pk_wrkdir)/bbl
-pk  := $(pk_wrkdir)/pk
 
 opensbi_srcdir := $(srcdir)/opensbi
 opensbi_wrkdir := $(wrkdir)/opensbi
@@ -308,39 +299,13 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
 	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
-	
-$(bbl): $(pk_srcdir) $(vmlinux_stripped) $(DTS)
-	rm -rf $(pk_wrkdir)
-	mkdir -p $(pk_wrkdir)
-	cd $(pk_wrkdir) && $</configure \
-		--host=$(target_linux) \
-		--with-payload=$(vmlinux_stripped) \
-		--enable-logo \
-		--with-logo=$(abspath conf/logo.txt) \
-		--with-dts=$(DTS)
-	CFLAGS="-mabi=$(ABI) -march=$(ISA)" $(MAKE) -C $(pk_wrkdir)
-
-
-$(pk): $(pk_srcdir) $(RISCV)/bin/$(target_newlib)-gcc
-	rm -rf $(pk_wrkdir)
-	mkdir -p $(pk_wrkdir)
-	cd $(pk_wrkdir) && $</configure \
-		--host=$(target_newlib) \
-		--prefix=$(abspath $(toolchain_dest))
-	CFLAGS="-mabi=$(ABI) -march=$(ISA)" $(MAKE) -C $(pk_wrkdir)
-	$(MAKE) -C $(pk_wrkdir) install
-
-OPENSBI_EXTRA_ARGS :=
-ifeq ($(MODE),LLVM)
-	OPENSBI_EXTRA_ARGS += LLVM=$(toolchain_dest)/bin/
-endif
 
 $(fw_jump): $(opensbi_srcdir) $(linux_image)
 	rm -rf $(opensbi_wrkdir)
 	mkdir -p $(opensbi_wrkdir)
 	$(MAKE) -C $(opensbi_srcdir) FW_TEXT_START=0x80000000 \
 		FW_PAYLOAD_PATH=$(linux_image) PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
-		$(OPENSBI_EXTRA_ARGS)
+		LLVM=$(toolchain_dest)/bin/
 
 .PHONY: spike
 $(spike): $(spike_srcdir) 
@@ -413,44 +378,23 @@ mrproper:
 
 .PHONY: spike qemu-run
 
-ifeq ($(BL),opensbi)
-
-QEMU_RUN_ARGS := 
-ifeq ($(MODE),LLVM)
-	QEMU_RUN_ARGS += -M virt -m 2048 -nographic -bios $(fw_jump) \
-		-kernel $(freebsd_kernel) \
-		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
-		-device virtio-blk-device,drive=drv \
-		-device virtio-rng-pci
-else
-	QEMU_RUN_ARGS += -nographic -machine virt -cpu rv64,sv57=on -m 2048M -bios $(fw_jump) -kernel $(linux_image)
-endif
-
 spike-run: $(fw_jump) $(spike)
 	$(spike) --isa=$(ISA)_zicntr_zihpm --kernel $(linux_image) $(fw_jump)
 
 qemu-run: $(qemu) $(fw_jump)
-	$(qemu) $(QEMU_RUN_ARGS)
+	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
+		-kernel $(freebsd_kernel) \
+		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
+		-device virtio-blk-device,drive=drv \
+		-device virtio-rng-pci
 
 qemu-debug: $(qemu) $(fw_jump)
-	$(qemu) $(QEMU_RUN_ARGS) -S -s
+	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
+		-kernel $(freebsd_kernel) \
+		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
+		-device virtio-blk-device,drive=drv \
+		-device virtio-rng-pci -S -s
 
 qemu-link: $(gdb_native)
 	$(gdb_native) $(freebsd_kernel)
-
-else ifeq ($(BL),bbl)
-spike-run: $(bbl) $(spike)
-	$(spike) --isa=$(ISA)_zicntr_zihpm $(bbl)
-
-qemu-run: $(qemu) $(bbl)
-	$(qemu) -nographic -machine virt -cpu rv64,sv57=on -m 2048M -bios $(bbl)
-
-qemu-debug: $(qemu) $(bbl)
-	$(qemu) -nographic -machine virt -cpu rv64,sv57=on -m 2048M -bios $(bbl) -s -S
-endif
-
-SD_CARD ?= /dev/sdb
-.PHONY: make_sd
-make_sd: $(bbl)
-	sudo dd if=$(bbl).bin of=$(SD_CARD)1 bs=4096
 
