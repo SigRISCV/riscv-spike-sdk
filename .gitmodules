@@ -15,19 +15,19 @@
 	url = https://github.com/riscv/riscv-isa-sim
 [submodule "opensbi"]
 	path = repo/opensbi
-	url = https://github.com/riscv-software-src/opensbi
+	url = git@github.com:SigRISCV/opensbi.git
 [submodule "repo/riscv-openocd"]
 	path = repo/riscv-openocd
 	url = https://github.com/riscv-collab/riscv-openocd.git
 [submodule "repo/qemu"]
 	path = repo/qemu
-	url = https://github.com/qemu/qemu.git
+	url = git@github.com:SigRISCV/qemu.git
 [submodule "repo/llvm-project"]
 	path = repo/llvm-project
-	url = https://github.com/llvm/llvm-project.git
+	url = git@github.com:SigRISCV/llvm-project.git
 [submodule "repo/freebsd"]
 	path = repo/freebsd
-	url = https://github.com/freebsd/freebsd-src.git
+	url = git@github.com:SigRISCV/freebsd-src.git
 [submodule "benchmark/lmbench"]
 	path = benchmark/lmbench
 	url = https://github.com/SigRISCV/lmbench.git
@@ -36,7 +36,7 @@
 	url = https://github.com/SigRISCV/unixbench.git
 [submodule "repo/gdb"]
 	path = repo/gdb
-	url = https://sourceware.org/git/binutils-gdb.git
+	url = git@github.com:SigRISCV/gdb.git
 [submodule "repo/cross/gmp"]
 	path = repo/cross/gmp
 	url = https://github.com/gmp-mirror/gmp.git
