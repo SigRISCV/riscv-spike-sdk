@@ -43,10 +43,6 @@ opensbi_srcdir := $(srcdir)/opensbi
 opensbi_wrkdir := $(wrkdir)/opensbi
 fw_jump := $(opensbi_wrkdir)/platform/generic/firmware/fw_jump.elf
 
-spike_srcdir := $(srcdir)/riscv-isa-sim
-spike_wrkdir := $(wrkdir)/riscv-isa-sim
-spike := $(toolchain_dest)/bin/spike
-
 qemu_srcdir := $(srcdir)/qemu
 qemu_wrkdir := $(wrkdir)/qemu
 qemu :=  $(toolchain_dest)/bin/qemu-system-riscv64
@@ -376,10 +372,7 @@ clean:
 mrproper:
 	rm -rf -- $(wrkdir) $(toolchain_dest) $(topdir)/rootfs
 
-.PHONY: spike qemu-run
-
-spike-run: $(fw_jump) $(spike)
-	$(spike) --isa=$(ISA)_zicntr_zihpm --kernel $(linux_image) $(fw_jump)
+.PHONY: qemu-run
 
 qemu-run: $(qemu) $(fw_jump)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
