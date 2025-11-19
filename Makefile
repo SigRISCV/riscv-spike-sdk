@@ -292,11 +292,11 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
 	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
 
-$(fw_jump): $(opensbi_srcdir) $(linux_image)
+fw_image $(fw_jump): $(opensbi_srcdir)
 	rm -rf $(opensbi_wrkdir)
 	mkdir -p $(opensbi_wrkdir)
 	$(MAKE) -C $(opensbi_srcdir) FW_TEXT_START=0x80000000 \
-		FW_PAYLOAD_PATH=$(linux_image) PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
+		PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 		LLVM=$(toolchain_dest)/bin/
 
 .PHONY: spike
@@ -342,11 +342,6 @@ $(gdb_native): $(gdb_srcdir)
 	$(MAKE) -C $(gdb_native_wrkdir) install-gdb
 gdb-native: $(gdb_native)
 
-.PHONY: buildroot_initramfs_sysroot vmlinux bbl fw_jump openocd
-buildroot_initramfs_sysroot: $(buildroot_initramfs_sysroot)
-vmlinux: $(vmlinux)
-bbl: $(bbl)
-fw_image: $(fw_jump)
 
 .PHONY: clean mrproper
 clean:
