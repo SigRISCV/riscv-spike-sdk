@@ -32,7 +32,7 @@ freebsd_bench := $(freebsd_rootfs)/opt
 freebsd_usr_local := $(freebsd_rootfs)/usr/local
 
 freebsd_world_done := $(freebsd_wrkdir)/.buildworld.done
-freebsd_distribution_done := $(freebsd_rootfs)/.distribution.done
+freebsd_distribution_done := $(freebsd_wrkdir)/.distribution.done
 freebsd_world_metalog := $(freebsd_rootfs)/METALOG.world
 freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
 
@@ -135,7 +135,7 @@ buildworld $(freebsd_world_done): $(freebsd_srcdir) $(toolchain_dest)/bin/clang
 	cd $(freebsd_srcdir) && env $(FREEBSD_ENV) \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) buildworld \
 		$(FREEBSD_ARGS)
-	touch -c $(freebsd_world_done)
+	touch $(freebsd_world_done)
 
 buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/QEMU $(toolchain_dest)/bin/clang
 	rm -rf $(freebsd_kernel_full)
@@ -164,7 +164,7 @@ distribution $(freebsd_distribution_done): $(freebsd_kernel_metalog) $(freebsd_w
 		DESTDIR=$(freebsd_rootfs) METALOG=$(freebsd_rootfs)/METALOG.world \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) distribution \
 		$(FREEBSD_ARGS) DESTDIR=$(freebsd_rootfs)
-	touch -c $(freebsd_distribution_done)
+	touch $(freebsd_distribution_done)
 
 freebsd-all: buildworld buildkernel installworld installkernel distribution
 
