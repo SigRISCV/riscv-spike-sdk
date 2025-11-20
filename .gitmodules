@@ -25,3 +25,6 @@
 [submodule "repo/cross/mpfr"]
 	path = repo/cross/mpfr
 	url = https://gitlab.inria.fr/mpfr/mpfr.git
+[submodule "benchmark/simple-sigriscv-test"]
+	path = benchmark/simple-sigriscv-test
+	url = git@github.com:SigRISCV/sigriscv-test.git
