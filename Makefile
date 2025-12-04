@@ -299,7 +299,11 @@ fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 		PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 		LLVM=$(toolchain_dest)/bin/
 
-.PHONY: qemu
+.PHONY: qemu qemu-clean
+qemu-clean:
+	rm -rf $(qemu_wrkdir)
+	rm -f $(qemu)
+
 $(qemu): $(qemu_srcdir)
 	rm -rf $(qemu_wrkdir)
 	mkdir -p $(qemu_wrkdir)
@@ -307,7 +311,8 @@ $(qemu): $(qemu_srcdir)
 	cd $(qemu_wrkdir) && $</configure \
 		--disable-docs \
 		--prefix=$(dir $(abspath $(dir $@))) \
-		--target-list=riscv64-linux-user,riscv64-softmmu
+		--target-list=riscv64-linux-user,riscv64-softmmu \
+		--extra-cflags="-DTARGET_SIGRISCV"
 	$(MAKE) -C $(qemu_wrkdir)
 	$(MAKE) -C $(qemu_wrkdir) install
 	touch -c $@
@@ -323,7 +328,8 @@ $(gdb_native): $(gdb_srcdir)
 		--prefix=$(toolchain_dest) \
 		--enable-targets=all \
 		CC=/usr/bin/clang CXX=/usr/bin/clang++ \
-		CFLAGS='-O2 -fcommon' CXXFLAGS='-O2 -fcommon'
+		CFLAGS='-O2 -fcommon' CXXFLAGS='-O2 -fcommon' \
+		LDFLAGS='-latomic'
 	$(MAKE) -C $(gdb_native_wrkdir) -j$(shell nproc) all-gdb
 	$(MAKE) -C $(gdb_native_wrkdir) -j$(shell nproc) all-binutils
 	$(MAKE) -C $(gdb_native_wrkdir) -j$(shell nproc) all-ld
