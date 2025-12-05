@@ -297,7 +297,12 @@ fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 	mkdir -p $(opensbi_wrkdir)
 	$(MAKE) -C $(opensbi_srcdir) FW_TEXT_START=0x80000000 \
 		PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
-		LLVM=$(toolchain_dest)/bin/
+		LLVM=$(toolchain_dest)/bin/ \
+		PLATFORM_RISCV_ISA=rv64gc_xsig0p1 \
+		firmware-cppflags-y="-DSIGRISCV" \
+		firmware-cflags-y="-menable-experimental-extensions -Wno-error=incompatible-pointer-types-discards-qualifiers" \
+		firmware-asflags-y="-menable-experimental-extensions"
+
 
 .PHONY: qemu qemu-clean
 qemu-clean:
