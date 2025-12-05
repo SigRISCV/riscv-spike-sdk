@@ -299,6 +299,7 @@ fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 		PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 		LLVM=$(toolchain_dest)/bin/ \
 		PLATFORM_RISCV_ISA=rv64gc_xsig0p1 \
+		SIGRISCV=y \
 		firmware-cppflags-y="-DSIGRISCV" \
 		firmware-cflags-y="-menable-experimental-extensions -Wno-error=incompatible-pointer-types-discards-qualifiers" \
 		firmware-asflags-y="-menable-experimental-extensions"
