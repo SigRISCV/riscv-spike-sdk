@@ -142,7 +142,8 @@ buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/QEMU $(tool
 	cp $(confdir)/QEMU $(freebsd_srcdir)/sys/riscv/conf/QEMU
 	cd $(freebsd_srcdir) && env $(FREEBSD_ENV) \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) buildkernel \
-		'KERNCONF=QEMU' DEBUG=-g $(FREEBSD_ARGS)
+		'KERNCONF=QEMU' DEBUG=-g $(FREEBSD_ARGS) \
+		CONF_CFLAGS="-DSIGRISCV" MACHINE_CPU=sigriscv
 
 installworld $(freebsd_world_metalog): $(freebsd_world_done)
 	rm -rf $(freebsd_rootfs)/METALOG.world
