@@ -136,6 +136,7 @@ buildworld $(freebsd_world_done): $(freebsd_srcdir) $(toolchain_dest)/bin/clang
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) buildworld \
 		$(FREEBSD_ARGS)
 	touch $(freebsd_world_done)
+	touch $(freebsd_change_flag)
 
 buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/QEMU $(toolchain_dest)/bin/clang
 	rm -rf $(freebsd_kernel_full)
@@ -144,6 +145,7 @@ buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/QEMU $(tool
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) buildkernel \
 		'KERNCONF=QEMU' DEBUG=-g $(FREEBSD_ARGS) \
 		CONF_CFLAGS="-DSIGRISCV" MACHINE_CPU=sigriscv
+	touch $(freebsd_change_flag)
 
 installworld $(freebsd_world_metalog): $(freebsd_world_done)
 	rm -rf $(freebsd_rootfs)/METALOG.world
@@ -151,6 +153,7 @@ installworld $(freebsd_world_metalog): $(freebsd_world_done)
 		DESTDIR=$(freebsd_rootfs) METALOG=$(freebsd_rootfs)/METALOG.world \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) installworld \
 		$(FREEBSD_ARGS) DESTDIR=$(freebsd_rootfs)
+	touch $(freebsd_change_flag)
 
 installkernel $(freebsd_kernel_metalog): $(freebsd_kernel_full)
 	rm -rf $(freebsd_rootfs)/METALOG.kernel
@@ -158,6 +161,7 @@ installkernel $(freebsd_kernel_metalog): $(freebsd_kernel_full)
 		DESTDIR=$(freebsd_rootfs) METALOG=$(freebsd_rootfs)/METALOG.kernel \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) installkernel \
 		'KERNCONF=QEMU' DEBUG=-g $(FREEBSD_ARGS) DESTDIR=$(freebsd_rootfs)
+	touch $(freebsd_change_flag)
 
 distribution $(freebsd_distribution_done): $(freebsd_kernel_metalog) $(freebsd_world_metalog)
 	rm -rf $(freebsd_distribution_done)
@@ -166,11 +170,12 @@ distribution $(freebsd_distribution_done): $(freebsd_kernel_metalog) $(freebsd_w
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) distribution \
 		$(FREEBSD_ARGS) DESTDIR=$(freebsd_rootfs)
 	touch $(freebsd_distribution_done)
+	touch $(freebsd_change_flag)
 
 freebsd-all: buildworld buildkernel installworld installkernel distribution
 
 .PHONY: disk-image
-disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog)
+disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag)
 	cp -r $(confdir)/freebsd_conf/* $(freebsd_rootfs)
 	python3 $(scriptdir)/get_mainfest.py $(freebsd_rootfs) $(freebsd_wrkdir)/METALOG.custom
 	cd $(freebsd_rootfs) && $(freebsd_wrkdir_legacy)/bin/makefs -t ffs \
@@ -221,6 +226,7 @@ lmbench: $(lmbench_srcdir) $(freebsd_rootfs)
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
 	mkdir -p $(freebsd_bench)/lmbench
 	cp -r $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(freebsd_bench)/lmbench/
+	touch $(freebsd_change_flag)
 
 .PHONY: unixbench
 unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
@@ -232,6 +238,7 @@ unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
 	mkdir -p $(freebsd_bench)/unixbench
 	cp $(unixbench_srcdir)/pgms/* $(freebsd_bench)/unixbench
 	cp $(unixbench_srcdir)/testdir/sort.src $(freebsd_bench)/unixbench
+	touch $(freebsd_change_flag)
 
 LLVM_CROSS_TARGET := --prefix=$(freebsd_usr_local) \
 		--host=riscv64-unknown-freebsd16 \
@@ -255,6 +262,7 @@ gmp-cross $(gmp_lib): $(gmp_srcdir) $(freebsd_rootfs)
 		$(LLVM_CROSS_COMPILE_ARGS)
 	cd $(gmp_wrkdir) && $(MAKE) -j$(shell nproc)
 	cd $(gmp_wrkdir) && $(MAKE) install
+	touch $(freebsd_change_flag)
 
 .PHONY: mpfr-cross
 mpfr-cross $(mpfr_lib): $(mpfr_srcdir) $(freebsd_rootfs)
@@ -267,6 +275,7 @@ mpfr-cross $(mpfr_lib): $(mpfr_srcdir) $(freebsd_rootfs)
 		$(LLVM_CROSS_COMPILE_ARGS)
 	cd $(mpfr_wrkdir) && $(MAKE) -j$(shell nproc)
 	cd $(mpfr_wrkdir) && $(MAKE) install
+	touch $(freebsd_change_flag)
 	
 
 GDB_LLVM_CROSS_CFLAGS_NOWARN := $(LLVM_CROSS_CFLAGS_NOWARN) -O2 -fcommon -DRL_NO_COMPAT -DLIBICONV_PLUG
@@ -293,6 +302,7 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
 	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
+	touch $(freebsd_change_flag)
 
 fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 	mkdir -p $(opensbi_wrkdir)
