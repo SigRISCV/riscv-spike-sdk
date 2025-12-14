@@ -75,7 +75,7 @@ llvm $(toolchain_dest)/bin/clang: $(llvm_srcdir)
 		$(llvm_srcdir)/llvm
 	free -h
 	$(CMAKE) --build $(llvm_wrkdir) --target install
-	
+
 FREEBSD_ENV := MAKEOBJDIRPREFIX=$(freebsd_wrkdir) \
 	X_COMPILER_TYPE=clang \
 	CC=/usr/bin/clang \
@@ -295,7 +295,6 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
 
 fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
-	rm -rf $(opensbi_wrkdir)
 	mkdir -p $(opensbi_wrkdir)
 	$(MAKE) -C $(opensbi_srcdir) FW_TEXT_START=0x80000000 \
 		PLATFORM=generic O=$(opensbi_wrkdir) CROSS_COMPILE=riscv64-unknown-linux-gnu- \
@@ -306,13 +305,9 @@ fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 		firmware-asflags-y="-menable-experimental-extensions"
 
 
-.PHONY: qemu qemu-clean
-qemu-clean:
-	rm -rf $(qemu_wrkdir)
-	rm -f $(qemu)
+.PHONY: qemu
 
 qemu $(qemu): $(qemu_srcdir)
-	rm -rf $(qemu_wrkdir)
 	mkdir -p $(qemu_wrkdir)
 	mkdir -p $(dir $@)
 	cd $(qemu_wrkdir) && $</configure \
