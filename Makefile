@@ -202,7 +202,8 @@ LLVM_CROSS_CFLAGS := -target riscv64-unknown-freebsd16 \
 
 LLVM_CROSS_NOWARN := -Wno-error=unused-command-line-argument -Werror=implicit-function-declaration \
 			-Werror=format -Werror=incompatible-pointer-types -Werror=pass-failed \
-			-Werror=undefined-internal -Wno-unused-command-line-argument
+			-Werror=undefined-internal -Wno-unused-command-line-argument \
+			-Wno-error=incompatible-pointer-types-discards-qualifiers
 
 LLVM_CROSS_CFLAGS_NOWARN = $(LLVM_CROSS_CFLAGS) $(LLVM_CROSS_NOWARN)
 
