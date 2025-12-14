@@ -75,7 +75,7 @@ llvm $(toolchain_dest)/bin/clang: $(llvm_srcdir)
 		$(llvm_srcdir)/llvm
 	free -h
 	$(CMAKE) --build $(llvm_wrkdir) --target install
-
+	
 FREEBSD_ENV := MAKEOBJDIRPREFIX=$(freebsd_wrkdir) \
 	X_COMPILER_TYPE=clang \
 	CC=/usr/bin/clang \
@@ -310,7 +310,7 @@ qemu-clean:
 	rm -rf $(qemu_wrkdir)
 	rm -f $(qemu)
 
-$(qemu): $(qemu_srcdir)
+qemu $(qemu): $(qemu_srcdir)
 	rm -rf $(qemu_wrkdir)
 	mkdir -p $(qemu_wrkdir)
 	mkdir -p $(dir $@)
@@ -322,7 +322,6 @@ $(qemu): $(qemu_srcdir)
 	$(MAKE) -C $(qemu_wrkdir)
 	$(MAKE) -C $(qemu_wrkdir) install
 	touch -c $@
-qemu: $(qemu)
 
 .PHONY: gdb-native
 $(gdb_native): $(gdb_srcdir)
