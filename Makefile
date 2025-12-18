@@ -35,9 +35,11 @@ freebsd_world_done := $(freebsd_wrkdir)/.buildworld.done
 freebsd_distribution_done := $(freebsd_wrkdir)/.distribution.done
 freebsd_world_metalog := $(freebsd_rootfs)/METALOG.world
 freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
+freebsd_change_flag := $(freebsd_wrkdir)/.change.flag
 
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
+simple_sigriscv_test_dir := $(benchdir)/simple-sigriscv-test
 
 opensbi_srcdir := $(srcdir)/opensbi
 opensbi_wrkdir := $(wrkdir)/opensbi
@@ -240,6 +242,12 @@ unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
 	cp $(unixbench_srcdir)/testdir/sort.src $(freebsd_bench)/unixbench
 	touch $(freebsd_change_flag)
 
+.PHONY: simple_sigriscv_test
+simple_sigriscv_test: $(simple_sigriscv_test_dir) $(freebsd_rootfs)
+	$(MAKE) -C $(simple_sigriscv_test_dir)
+	$(MAKE) -C $(simple_sigriscv_test_dir) install PREFIX=$(freebsd_bench)
+	touch $(freebsd_change_flag)
+
 LLVM_CROSS_TARGET := --prefix=$(freebsd_usr_local) \
 		--host=riscv64-unknown-freebsd16 \
 		--target=riscv64-unknown-freebsd16 \
@@ -319,10 +327,10 @@ fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 
 qemu $(qemu): $(qemu_srcdir)
 	mkdir -p $(qemu_wrkdir)
-	mkdir -p $(dir $@)
+	mkdir -p $(toolchain_dest)
 	cd $(qemu_wrkdir) && $</configure \
 		--disable-docs \
-		--prefix=$(dir $(abspath $(dir $@))) \
+		--prefix=$(toolchain_dest) \
 		--target-list=riscv64-linux-user,riscv64-softmmu \
 		--extra-cflags="-DTARGET_SIGRISCV"
 	$(MAKE) -C $(qemu_wrkdir)
@@ -330,7 +338,7 @@ qemu $(qemu): $(qemu_srcdir)
 	touch -c $@
 
 .PHONY: gdb-native
-$(gdb_native): $(gdb_srcdir)
+gdb-native $(gdb_native): $(gdb_srcdir)
 	mkdir -p $(gdb_native_wrkdir)
 	cd $(gdb_native_wrkdir) && $</configure \
 		--disable-nls --enable-tui --disable-ld --disable-libstdcxx \
@@ -345,7 +353,6 @@ $(gdb_native): $(gdb_srcdir)
 	$(MAKE) -C $(gdb_native_wrkdir) -j$(shell nproc) all-binutils
 	$(MAKE) -C $(gdb_native_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_native_wrkdir) install-gdb
-gdb-native: $(gdb_native)
 
 
 .PHONY: clean mrproper
