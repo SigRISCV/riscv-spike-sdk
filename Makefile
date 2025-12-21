@@ -309,7 +309,7 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-binutils
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
-	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
+	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
 	touch $(freebsd_change_flag)
 
 fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
