@@ -29,3 +29,6 @@
 [submodule "benchmark/simple-sigriscv-test"]
 	path = benchmark/simple-sigriscv-test
 	url = git@github.com:SigRISCV/sigriscv-test.git
+[submodule "benchmark/juliet-test-suite-c"]
+	path = benchmark/juliet-test-suite-c
+	url = git@github.com:SigRISCV/juliet-test-suite-c.git
