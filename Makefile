@@ -2,8 +2,11 @@
 # a toolchain install tree that was built via other means.
 RISCV ?= $(CURDIR)/toolchain
 PATH := $(RISCV)/bin:$(PATH)
-ISA ?= rv64imafdc_zifencei_zicsr
-ABI ?= lp64d
+MODE ?= raw
+RAW_ISA = rv64imafdc_zifencei_zicsr
+RAW_ABI = lp64d
+SIG_ISA = rv64imafdc_zifencei_zicsr_xsig0p1
+SIG_ABI = lps64d
 CMAKE := cmake
 
 topdir := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -205,7 +208,15 @@ LLVM_CROSS_TOOLCHAIN := CC=$(toolchain_dest)/bin/clang \
 
 LLVM_CROSS_CFLAGS := -target riscv64-unknown-freebsd16 \
 			--sysroot=$(freebsd_rootfs) -B$(toolchain_dest)/bin \
-			-march=$(ISA) -mabi=$(ABI) -mno-relax
+			-mno-relax -menable-experimental-extensions -g
+
+ifeq ($(MODE),raw)
+LLVM_CROSS_CFLAGS += -march=$(RAW_ISA) -mabi=$(RAW_ABI)
+else ifeq ($(MODE),sig)
+LLVM_CROSS_CFLAGS += -march=$(SIG_ISA) -mabi=$(SIG_ABI)
+else
+$(error "Unknown MODE $(MODE), please set MODE to raw or sig")
+endif
 
 LLVM_CROSS_NOWARN := -Wno-error=unused-command-line-argument -Werror=implicit-function-declaration \
 			-Werror=format -Werror=incompatible-pointer-types -Werror=pass-failed \
@@ -214,9 +225,7 @@ LLVM_CROSS_NOWARN := -Wno-error=unused-command-line-argument -Werror=implicit-fu
 
 LLVM_CROSS_CFLAGS_NOWARN = $(LLVM_CROSS_CFLAGS) $(LLVM_CROSS_NOWARN)
 
-LLVM_CROSS_LDFLAGS := -target riscv64-unknown-freebsd16 \
-			--sysroot=$(freebsd_rootfs) -B$(toolchain_dest)/bin \
-			-march=$(ISA) -mabi=$(ABI) -mno-relax -fuse-ld=lld \
+LLVM_CROSS_LDFLAGS := $(LLVM_CROSS_CFLAGS) -fuse-ld=lld \
 			--ld-path=$(toolchain_dest)/bin/ld.lld
 
 .PHONY: lmbench
@@ -224,22 +233,23 @@ lmbench: $(lmbench_srcdir) $(freebsd_rootfs)
 	make -C $(lmbench_srcdir) build \
 		OS=riscv-FreeBSD \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O3" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O0" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
-	mkdir -p $(freebsd_bench)/lmbench
-	cp -r $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(freebsd_bench)/lmbench/
+	mkdir -p $(freebsd_bench)/lmbench-$(MODE)
+	cp -r $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(freebsd_bench)/lmbench-$(MODE)/
 	touch $(freebsd_change_flag)
 
 .PHONY: unixbench
 unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
+	make -C $(unixbench_srcdir) clean
 	make -C $(unixbench_srcdir) \
-		OSNAME=freebsd ARCHNAME=$(ISA) \
+		OSNAME=freebsd \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O3" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O0" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
-	mkdir -p $(freebsd_bench)/unixbench
-	cp $(unixbench_srcdir)/pgms/* $(freebsd_bench)/unixbench
-	cp $(unixbench_srcdir)/testdir/sort.src $(freebsd_bench)/unixbench
+	mkdir -p $(freebsd_bench)/unixbench-$(MODE)
+	cp $(unixbench_srcdir)/pgms/* $(freebsd_bench)/unixbench-$(MODE)
+	cp $(unixbench_srcdir)/testdir/sort.src $(freebsd_bench)/unixbench-$(MODE)
 	touch $(freebsd_change_flag)
 
 .PHONY: simple_sigriscv_test
