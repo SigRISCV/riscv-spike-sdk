@@ -38,11 +38,15 @@ freebsd_world_done := $(freebsd_wrkdir)/.buildworld.done
 freebsd_distribution_done := $(freebsd_wrkdir)/.distribution.done
 freebsd_world_metalog := $(freebsd_rootfs)/METALOG.world
 freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
+freebsd_custom_done := $(freebsd_wrkdir)/.custom.done
 freebsd_change_flag := $(freebsd_wrkdir)/.change.flag
 
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
 simple_sigriscv_test_dir := $(benchdir)/simple-sigriscv-test
+unixbench_install := $(freebsd_bench)/unixbench
+lmbench_install := $(freebsd_bench)/lmbench
+simple_sigriscv_test_install := $(freebsd_bench)/simple_sigriscv_test
 
 opensbi_srcdir := $(srcdir)/opensbi
 opensbi_wrkdir := $(wrkdir)/opensbi
@@ -179,8 +183,13 @@ distribution $(freebsd_distribution_done): $(freebsd_kernel_metalog) $(freebsd_w
 
 freebsd-all: buildworld buildkernel installworld installkernel distribution
 
+freebsd_custom $(freebsd_custom_done): $(freebsd_rootfs)/root/.shrc
+	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
+	touch $(freebsd_custom_done)
+	touch $(freebsd_change_flag)
+
 .PHONY: disk-image
-disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag)
+disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
 	cp -r $(confdir)/freebsd_conf/* $(freebsd_rootfs)
 	python3 $(scriptdir)/get_mainfest.py $(freebsd_rootfs) $(freebsd_wrkdir)/METALOG.custom
 	cd $(freebsd_rootfs) && $(freebsd_wrkdir_legacy)/bin/makefs -t ffs \
@@ -208,7 +217,12 @@ LLVM_CROSS_TOOLCHAIN := CC=$(toolchain_dest)/bin/clang \
 
 LLVM_CROSS_CFLAGS := -target riscv64-unknown-freebsd16 \
 			--sysroot=$(freebsd_rootfs) -B$(toolchain_dest)/bin \
-			-mno-relax -menable-experimental-extensions -g
+			-mno-relax -menable-experimental-extensions
+
+LLVM_CROSS_RAWCFLAGS := $(LLVM_CROSS_CFLAGS) -march=$(RAW_ISA) -mabi=$(RAW_ABI)
+
+LLVM_CROSS_RAWLDFLAGS := $(LLVM_CROSS_RAWCFLAGS) -fuse-ld=lld \
+			--ld-path=$(toolchain_dest)/bin/ld.lld
 
 ifeq ($(MODE),raw)
 LLVM_CROSS_CFLAGS += -march=$(RAW_ISA) -mabi=$(RAW_ABI)
@@ -230,13 +244,17 @@ LLVM_CROSS_LDFLAGS := $(LLVM_CROSS_CFLAGS) -fuse-ld=lld \
 
 .PHONY: lmbench
 lmbench: $(lmbench_srcdir) $(freebsd_rootfs)
+	make -C $(lmbench_srcdir) clean
 	make -C $(lmbench_srcdir) build \
 		OS=riscv-FreeBSD \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O0" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O0 -g" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
-	mkdir -p $(freebsd_bench)/lmbench-$(MODE)
-	cp -r $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(freebsd_bench)/lmbench-$(MODE)/
+	mkdir -p $(lmbench_install)/src
+	mkdir -p $(lmbench_install)/$(MODE)
+	cp $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(lmbench_install)/$(MODE)/
+	cp $(lmbench_srcdir)/src/*.c $(lmbench_install)/src/
+	cp $(lmbench_srcdir)/src/*.h $(lmbench_install)/src/
 	touch $(freebsd_change_flag)
 
 .PHONY: unixbench
@@ -245,11 +263,16 @@ unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
 	make -C $(unixbench_srcdir) \
 		OSNAME=freebsd \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O0" \
-		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
-	mkdir -p $(freebsd_bench)/unixbench-$(MODE)
-	cp $(unixbench_srcdir)/pgms/* $(freebsd_bench)/unixbench-$(MODE)
-	cp $(unixbench_srcdir)/testdir/sort.src $(freebsd_bench)/unixbench-$(MODE)
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g" \
+		LDFLAGS="$(LLVM_CROSS_LDFLAGS)" \
+		RAWCFLAGS="$(LLVM_CROSS_RAWCFLAGS)" \
+		RAWLDFLAGS="$(LLVM_CROSS_RAWLDFLAGS)"
+	mkdir -p $(unixbench_install)/src
+	mkdir -p $(unixbench_install)/$(MODE)
+	cp $(unixbench_srcdir)/pgms/* $(unixbench_install)/$(MODE)
+	cp $(unixbench_srcdir)/testdir/sort.src $(unixbench_install)/$(MODE)
+	cp $(unixbench_srcdir)/src/* $(unixbench_install)/src/
+	cp $(unixbench_srcdir)/.gdbinit $(unixbench_install)/$(MODE)/
 	touch $(freebsd_change_flag)
 
 .PHONY: simple_sigriscv_test
@@ -319,7 +342,6 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-binutils
 	$(MAKE) -C $(gdb_cross_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
-	echo "export LD_LIBRARY_PATH=/usr/local/lib:\$LD_LIBRARY_PATH" >> $(freebsd_rootfs)/root/.shrc
 	touch $(freebsd_change_flag)
 
 fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
@@ -374,12 +396,13 @@ mrproper:
 
 .PHONY: qemu-run
 
-qemu-run: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
+qemu-run: 
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
 		-kernel $(freebsd_kernel) \
 		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
 		-device virtio-blk-device,drive=drv \
-		-device virtio-rng-pci
+		-device virtio-rng-pci \
+		-virtfs local,path=/home/zyy/sigriscv/riscv-spike-sdk/benchmark/unixbench/UnixBench/src,mount_tag=unixbench_src,security_model=none
 
 qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
@@ -390,4 +413,3 @@ qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 
 qemu-link: $(gdb_native)
 	$(gdb_native) $(freebsd_kernel)
-
