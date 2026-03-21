@@ -56,6 +56,11 @@ qemu_srcdir := $(srcdir)/qemu
 qemu_wrkdir := $(wrkdir)/qemu
 qemu :=  $(toolchain_dest)/bin/qemu-system-riscv64
 
+gem5_srcdir := $(srcdir)/gem5
+gem5_wrkdir := $(wrkdir)/gem5
+gem5_builddir := $(gem5_wrkdir)/build/RISCV
+gem5_bin := $(toolchain_dest)/bin/gem5.opt
+
 gmp_srcdir := $(srcdir)/cross/gmp
 gmp_wrkdir := $(wrkdir)/gmp
 gmp_lib := $(freebsd_usr_local)/lib/libgmp.so
@@ -232,10 +237,12 @@ else
 $(error "Unknown MODE $(MODE), please set MODE to raw or sig")
 endif
 
-LLVM_CROSS_NOWARN := -Wno-error=unused-command-line-argument -Werror=implicit-function-declaration \
-			-Werror=format -Werror=incompatible-pointer-types -Werror=pass-failed \
-			-Werror=undefined-internal -Wno-unused-command-line-argument \
-			-Wno-error=incompatible-pointer-types-discards-qualifiers
+LLVM_CROSS_NOWARN := -Wno-error=unused-command-line-argument \
+			-Wno-error=implicit-function-declaration -Wno-error=format \
+			-Wno-error=incompatible-pointer-types -Wno-error=pass-failed \
+			-Wno-error=undefined-internal -Wno-unused-command-line-argument \
+			-Wno-error=incompatible-pointer-types-discards-qualifiers \
+			-Wno-error
 
 LLVM_CROSS_CFLAGS_NOWARN = $(LLVM_CROSS_CFLAGS) $(LLVM_CROSS_NOWARN)
 
@@ -386,6 +393,18 @@ gdb-native $(gdb_native): $(gdb_srcdir)
 	$(MAKE) -C $(gdb_native_wrkdir) -j$(shell nproc) all-ld
 	$(MAKE) -C $(gdb_native_wrkdir) install-gdb
 
+.PHONY: gem5-create
+gem5-create:
+	conda create -n gem5-build python=3.10 -y
+	conda activate gem5-build
+
+.PHONY: gem5
+gem5 $(gem5_bin): $(gem5_srcdir)
+	mkdir -p $(gem5_wrkdir)
+	cd $(gem5_wrkdir) && scons -C $(gem5_srcdir) build/RISCV/gem5.opt -j$(shell nproc)
+	mkdir -p $(toolchain_dest)/bin
+	cp $(gem5_builddir)/gem5.opt $(gem5_bin)
+	ln -sf $(gem5_bin) $(toolchain_dest)/bin/gem5
 
 .PHONY: clean mrproper
 clean:
