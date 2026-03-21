@@ -32,3 +32,6 @@
 [submodule "benchmark/juliet-test-suite-c"]
 	path = benchmark/juliet-test-suite-c
 	url = git@github.com:SigRISCV/juliet-test-suite-c.git
+[submodule "repo/gem5"]
+	path = repo/gem5
+	url = git@github.com:SigRISCV/gem5.git
