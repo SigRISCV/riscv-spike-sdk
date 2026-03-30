@@ -3,6 +3,7 @@
 RISCV ?= $(CURDIR)/toolchain
 PATH := $(RISCV)/bin:$(PATH)
 MODE ?= raw
+JULIET_BRANCH ?=
 RAW_ISA = rv64imafdc_zifencei_zicsr
 RAW_ABI = lp64d
 SIG_ISA = rv64imafdc_zifencei_zicsr_xsig0p1
@@ -44,9 +45,25 @@ freebsd_change_flag := $(freebsd_wrkdir)/.change.flag
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
 simple_sigriscv_test_dir := $(benchdir)/simple-sigriscv-test
+juliet_srcdir   := $(benchdir)/juliet-test-suite-c
 unixbench_install := $(freebsd_bench)/unixbench
 lmbench_install := $(freebsd_bench)/lmbench
 simple_sigriscv_test_install := $(freebsd_bench)/simple_sigriscv_test
+juliet_install  := $(freebsd_bench)/juliet
+juliet_wrkdir   := $(wrkdir)/juliet
+
+# CWEs selected for SigRISCV memory-safety validation (see docs/juliet-test-selection.md)
+JULIET_SELECTED_CWES := \
+	CWE121_Stack_Based_Buffer_Overflow \
+	CWE122_Heap_Based_Buffer_Overflow \
+	CWE123_Write_What_Where_Condition \
+	CWE124_Buffer_Underwrite \
+	CWE415_Double_Free \
+	CWE416_Use_After_Free \
+	CWE476_NULL_Pointer_Dereference \
+	CWE562_Return_of_Stack_Variable_Address \
+	CWE590_Free_Memory_Not_on_Heap \
+	CWE761_Free_Pointer_Not_at_Start_of_Buffer
 
 opensbi_srcdir := $(srcdir)/opensbi
 opensbi_wrkdir := $(wrkdir)/opensbi
@@ -281,6 +298,41 @@ unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
 	cp $(unixbench_srcdir)/src/* $(unixbench_install)/src/
 	cp $(unixbench_srcdir)/.gdbinit $(unixbench_install)/$(MODE)/
 	touch $(freebsd_change_flag)
+
+.PHONY: juliet
+juliet: $(juliet_srcdir) $(freebsd_rootfs)
+	mkdir -p $(juliet_wrkdir)
+	if [ -n "$(JULIET_BRANCH)" ]; then cd $(juliet_srcdir) && git checkout $(JULIET_BRANCH); fi
+	{ \
+	  echo 'set(CMAKE_SYSTEM_NAME FreeBSD)'; \
+	  echo 'set(CMAKE_SYSTEM_PROCESSOR riscv64)'; \
+	  echo 'set(CMAKE_C_COMPILER "$(toolchain_dest)/bin/clang")'; \
+	  echo 'set(CMAKE_AR "$(toolchain_dest)/bin/llvm-ar" CACHE FILEPATH "" FORCE)'; \
+	  echo 'set(CMAKE_RANLIB "$(toolchain_dest)/bin/llvm-ranlib" CACHE FILEPATH "" FORCE)'; \
+	  echo 'set(CMAKE_C_FLAGS_INIT "$(LLVM_CROSS_CFLAGS_NOWARN) -g")'; \
+	  echo 'set(CMAKE_EXE_LINKER_FLAGS_INIT "$(LLVM_CROSS_LDFLAGS)")'; \
+	  echo 'set(CMAKE_C_COMPILER_FORCED TRUE)'; \
+	  echo 'set(CMAKE_CXX_COMPILER_FORCED TRUE)'; \
+	  echo 'set(CMAKE_FIND_ROOT_PATH "$(freebsd_rootfs)")'; \
+	  echo 'set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)'; \
+	  echo 'set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)'; \
+	  echo 'set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)'; \
+	} > $(juliet_wrkdir)/toolchain.cmake
+	for CWE in $(JULIET_SELECTED_CWES); do \
+		CWEDIR=$(juliet_srcdir)/testcases/$$CWE; \
+		rm -f "$$CWEDIR/CMakeCache.txt"; \
+		cp $(scriptdir)/juliet-CMakeLists.txt $$CWEDIR/CMakeLists.txt; \
+		cmake -DCMAKE_TOOLCHAIN_FILE=$(juliet_wrkdir)/toolchain.cmake \
+			-S $$CWEDIR -B $$CWEDIR || exit 1; \
+		$(MAKE) -C $$CWEDIR -j$(shell nproc) -k; \
+	done
+	mkdir -p $(juliet_install)/$(MODE)
+	cp -r $(juliet_srcdir)/bin/. $(juliet_install)/$(MODE)/
+	cp $(juliet_srcdir)/juliet-run.sh $(juliet_install)/$(MODE)/
+	sed -i 's|INPUT_FILE="/tmp/in.txt"|INPUT_FILE="/tmp/in.txt"; touch "$$INPUT_FILE"|' \
+		$(juliet_install)/$(MODE)/juliet-run.sh
+	touch $(freebsd_change_flag)
+
 
 .PHONY: simple_sigriscv_test
 simple_sigriscv_test: $(simple_sigriscv_test_dir) $(freebsd_rootfs)
