@@ -30,7 +30,8 @@ freebsd_wrkdir := $(wrkdir)/freebsd
 freebsd_wrkdir_legacy := $(freebsd_wrkdir)/$(freebsd_srcdir)/riscv.riscv64/tmp/legacy
 freebsd_rootfs := $(topdir)/rootfs/freebsd_sysroot
 freebsd_rootfs_img := $(freebsd_rootfs).img
-freebsd_kernel_full := $(freebsd_wrkdir)/$(freebsd_srcdir)/riscv.riscv64/sys/QEMU/kernel.full
+freebsd_rootfs_conf := QEMU_MIN
+freebsd_kernel_full := $(freebsd_wrkdir)/$(freebsd_srcdir)/riscv.riscv64/sys/$(freebsd_rootfs_conf)/kernel.full
 freebsd_kernel := $(freebsd_rootfs)/boot/kernel/kernel
 freebsd_bench := $(freebsd_rootfs)/opt
 freebsd_usr_local := $(freebsd_rootfs)/usr/local
@@ -77,6 +78,15 @@ gem5_srcdir := $(srcdir)/gem5
 gem5_wrkdir := $(wrkdir)/gem5
 gem5_builddir := $(gem5_wrkdir)/build/RISCV
 gem5_bin := $(toolchain_dest)/bin/gem5.opt
+gem5_freebsd_config := $(gem5_srcdir)/configs/sigriscv/freebsd.py
+GEM5_FREEBSD_CPU_TYPE ?= atomic
+GEM5_FREEBSD_MEM_SIZE ?= 2GiB
+GEM5_FREEBSD_SYS_CLOCK ?= 1GHz
+GEM5_FREEBSD_MAX_TICKS ?= 0
+GEM5_FREEBSD_ROOT_MOUNTFROM ?= ufs:/dev/vtbd0
+GEM5_FREEBSD_ROOTDEVNAME ?= ufs:/dev/ufs/root\\nufs:/dev/vtbd0
+GEM5_ARGS ?=
+GEM5_FREEBSD_EXTRA_ARGS ?=
 
 gmp_srcdir := $(srcdir)/cross/gmp
 gmp_wrkdir := $(wrkdir)/gmp
@@ -126,7 +136,7 @@ FREEBSD_WNO := "-Wno-unterminated-string-initialization -Wno-switch \
 	-Wno-cast-function-type-mismatch -Wno-unused -Wno-format -Wno-parentheses \
 	-Wno-string-plus-int -Wno-address-of-packed-member -Wno-tautological-pointer-compare\
 	-Wno-implicit-enum-enum-cast -Wno-empty-body -Wno-incompatible-pointer-types-discards-qualifiers \
-	-Wno-tautological-constant-out-of-range-compare -Wno-uninitialized"
+	-Wno-tautological-constant-out-of-range-compare -Wno-uninitialized -Wno-implicit-function-declaration"
 
 FREEBSD_TOOL := LD=$(toolchain_dest)/bin/ld.lld \
 	AR=$(toolchain_dest)/bin/llvm-ar \
@@ -169,12 +179,12 @@ buildworld $(freebsd_world_done): $(freebsd_srcdir) $(toolchain_dest)/bin/clang
 	touch $(freebsd_world_done)
 	touch $(freebsd_change_flag)
 
-buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/QEMU $(toolchain_dest)/bin/clang
+buildkernel $(freebsd_kernel_full): $(freebsd_world_done) $(confdir)/$(freebsd_rootfs_conf) $(toolchain_dest)/bin/clang
 	rm -rf $(freebsd_kernel_full)
-	cp $(confdir)/QEMU $(freebsd_srcdir)/sys/riscv/conf/QEMU
+	cp $(confdir)/$(freebsd_rootfs_conf) $(freebsd_srcdir)/sys/riscv/conf/$(freebsd_rootfs_conf)
 	cd $(freebsd_srcdir) && env $(FREEBSD_ENV) \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) buildkernel \
-		'KERNCONF=QEMU' DEBUG=-g $(FREEBSD_ARGS) \
+		'KERNCONF=$(freebsd_rootfs_conf)' DEBUG=-g $(FREEBSD_ARGS) \
 		CONF_CFLAGS="-DSIGRISCV" MACHINE_CPU=sigriscv
 	touch $(freebsd_change_flag)
 
@@ -191,7 +201,7 @@ installkernel $(freebsd_kernel_metalog): $(freebsd_kernel_full)
 	cd $(freebsd_srcdir) && env $(FREEBSD_ENV) \
 		DESTDIR=$(freebsd_rootfs) METALOG=$(freebsd_rootfs)/METALOG.kernel \
 	nice $(freebsd_srcdir)/tools/build/make.py -j$(shell nproc) installkernel \
-		'KERNCONF=QEMU' DEBUG=-g $(FREEBSD_ARGS) DESTDIR=$(freebsd_rootfs)
+		'KERNCONF=$(freebsd_rootfs_conf)' DEBUG=-g $(FREEBSD_ARGS) DESTDIR=$(freebsd_rootfs)
 	touch $(freebsd_change_flag)
 
 distribution $(freebsd_distribution_done): $(freebsd_kernel_metalog) $(freebsd_world_metalog)
@@ -484,3 +494,17 @@ qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 
 qemu-link: $(gdb_native)
 	$(gdb_native) $(freebsd_kernel)
+
+.PHONY: gem5-run-freebsd
+gem5-run-freebsd:
+	$(gem5_bin) $(GEM5_ARGS) $(gem5_freebsd_config) \
+		--bootloader $(fw_jump) \
+		--kernel $(freebsd_kernel) \
+		--disk-image $(freebsd_rootfs_img) \
+		--cpu-type $(GEM5_FREEBSD_CPU_TYPE) \
+		--sys-clock $(GEM5_FREEBSD_SYS_CLOCK) \
+		--mem-size $(GEM5_FREEBSD_MEM_SIZE) \
+		--root-mountfrom '$(GEM5_FREEBSD_ROOT_MOUNTFROM)' \
+		--rootdevname '$(GEM5_FREEBSD_ROOTDEVNAME)' \
+		--max-ticks $(GEM5_FREEBSD_MAX_TICKS) \
+		$(GEM5_FREEBSD_EXTRA_ARGS)
