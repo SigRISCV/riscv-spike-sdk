@@ -85,6 +85,9 @@ GEM5_FREEBSD_SYS_CLOCK ?= 1GHz
 GEM5_FREEBSD_MAX_TICKS ?= 0
 GEM5_FREEBSD_ROOT_MOUNTFROM ?= ufs:/dev/ufs/root
 GEM5_FREEBSD_ROOTDEVNAME ?= ufs:/dev/ufs/root\\nufs:/dev/vtbd0
+GEM5_FREEBSD_CHECKPOINT_DIR ?=
+GEM5_FREEBSD_RESTORE_CHECKPOINT ?=
+GEM5_FREEBSD_READFILE ?=
 GEM5_ARGS ?=
 GEM5_FREEBSD_EXTRA_ARGS ?=
 
@@ -101,6 +104,12 @@ gdb_native_wrkdir := $(wrkdir)/gdb-native
 gdb_cross_wrkdir := $(wrkdir)/gdb-cross
 gdb_native := $(toolchain_dest)/bin/gdb
 gdb_cross := $(freebsd_usr_local)/bin/gdb
+
+m5_srcdir := $(gem5_srcdir)/util/m5
+m5_wrkdir := $(m5_srcdir)/build
+m5_result := $(m5_wrkdir)/riscv/out/m5
+m5_cross := $(freebsd_rootfs)/sbin/m5
+m5_scripts := $(confdir)/m5_conf
 
 .PHONY: llvm
 llvm $(toolchain_dest)/bin/clang: $(llvm_srcdir)
@@ -414,6 +423,33 @@ gdb-cross $(gdb_cross): $(gdb_srcdir) $(gmp_lib) $(mpfr_lib)
 	$(MAKE) -C $(gdb_cross_wrkdir) install-gdb
 	touch $(freebsd_change_flag)
 
+M5_LLVM_CROSS_CFLAGS := $(LLVM_CROSS_CFLAGS_NOWARN)
+M5_LLVM_CROSS_LDFLAGS := $(LLVM_CROSS_LDFLAGS)
+
+.PHONY: cross-m5
+cross-m5 $(m5_cross): $(m5_srcdir) $(toolchain_dest)/bin/clang $(freebsd_distribution_done)
+	mkdir -p $(m5_wrkdir)
+	cd $(m5_srcdir) && scons \
+		CC='$(toolchain_dest)/bin/clang' \
+		CXX='$(toolchain_dest)/bin/clang++' \
+		AS='$(toolchain_dest)/bin/clang' \
+		AR='$(toolchain_dest)/bin/llvm-ar' \
+		LD='$(toolchain_dest)/bin/ld.lld' \
+		RANLIB='$(toolchain_dest)/bin/llvm-ranlib' \
+		riscv.CCFLAGS='$(M5_LLVM_CROSS_CFLAGS)' \
+		riscv.CXXFLAGS='$(M5_LLVM_CROSS_CFLAGS)' \
+		riscv.ASFLAGS='$(M5_LLVM_CROSS_CFLAGS)' \
+		riscv.LINKFLAGS='$(M5_LLVM_CROSS_LDFLAGS)' \
+		build/riscv/out/m5
+	mkdir -p $(freebsd_rootfs)/sbin
+	cp $(m5_result) $(m5_cross)
+	chmod 755 $(m5_cross)
+	cp $(m5_scripts)/* $(freebsd_rootfs)/usr/bin/
+	chmod 755 $(freebsd_rootfs)/usr/bin/gem5-checkpoint \
+		$(freebsd_rootfs)/usr/bin/gem5-exit \
+		$(freebsd_rootfs)/usr/bin/gem5-readfile
+	touch $(freebsd_change_flag)
+
 fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
 	mkdir -p $(opensbi_wrkdir)
 	$(MAKE) -C $(opensbi_srcdir) FW_TEXT_START=0x80000000 \
@@ -497,7 +533,7 @@ qemu-link: $(gdb_native)
 	$(gdb_native) $(freebsd_kernel)
 
 .PHONY: gem5-run-freebsd
-gem5-run-freebsd:
+gem5-run-freebsd: $(m5_cross)
 	$(gem5_bin) $(GEM5_ARGS) $(gem5_freebsd_config) \
 		--bootloader $(fw_jump) \
 		--kernel $(freebsd_kernel) \
@@ -507,10 +543,12 @@ gem5-run-freebsd:
 		--mem-size $(GEM5_FREEBSD_MEM_SIZE) \
 		--root-mountfrom '$(GEM5_FREEBSD_ROOT_MOUNTFROM)' \
 		--rootdevname '$(GEM5_FREEBSD_ROOTDEVNAME)' \
+		--checkpoint-dir '$(GEM5_FREEBSD_CHECKPOINT_DIR)' \
+		--restore-checkpoint '$(GEM5_FREEBSD_RESTORE_CHECKPOINT)' \
+		--readfile '$(GEM5_FREEBSD_READFILE)' \
 		--max-ticks $(GEM5_FREEBSD_MAX_TICKS) \
 		$(GEM5_FREEBSD_EXTRA_ARGS)
 
 .PHONY: gem5-link
 gem5-link:
 	python3 $(gem5_srcdir)/util/term/gem5term 3456
-
