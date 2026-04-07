@@ -1,0 +1,68 @@
+#NO_UNIVERSE
+
+include "GENERIC"
+
+ident		QEMU_MIN
+
+options 	HZ=100
+options 	ROOTDEVNAME=\"ufs:/dev/ufs/root\nufs:/dev/vtbd0\"
+
+nooptions	IPSEC_SUPPORT		# Remove IPsec loader support
+nooptions	SCTP_SUPPORT		# Remove SCTP loader support
+nooptions	TCP_OFFLOAD		# Drop TCP offload infrastructure
+nooptions	TCP_BLACKBOX		# Disable TCP blackbox logging
+nooptions	TCP_HHOOK		# Remove TCP hook framework
+nooptions	ROUTE_MPATH		# Disable multipath routing tables
+nooptions	VIMAGE			# Turn off VNET virtual network stacks
+nooptions	DEBUGNET		# Disable debugnet crash-dump networking
+nooptions	NETDUMP			# Disable netdump client
+nooptions	SMBFS			# Remove SMB filesystem client
+nooptions	NETSMB			# Remove SMB network protocol support
+nooptions	LIBMCHAIN		# Drop SMB multibyte character helpers
+nooptions	LIBICONV		# Drop kernel iconv support for SMBFS
+nooptions	NFSCL			# Remove NFS client
+nooptions	NFSD			# Remove NFS server
+nooptions	NFSLOCKD		# Remove NFS lock manager
+nooptions	NFS_ROOT		# Disable NFS root filesystem support
+nooptions	MSDOSFS			# Remove FAT/MS-DOS filesystem
+nooptions	CD9660			# Remove ISO9660 filesystem
+nooptions	UFS_ACL			# Disable UFS ACL support
+nooptions	QUOTA			# Remove disk quota support
+nooptions	GEOM_RAID		# Disable GEOM software RAID classes
+nooptions	AUDIT			# Remove TrustedBSD audit subsystem
+nooptions	MAC			# Remove MAC framework
+nooptions	RACCT			# Disable resource accounting
+nooptions	RCTL			# Disable resource limits controller
+nooptions	KTRACE			# Remove kernel tracing facility
+nooptions	INVARIANTS		# Disable kernel invariants
+nooptions	INVARIANT_SUPPORT	# Disable invariant support helpers
+nooptions	WITNESS			# Disable lock order verification
+nooptions	WITNESS_SKIPSPIN	# Disable witness spinlock tracking
+
+nodevice	vtnet			# Omit VirtIO PCI Ethernet device
+nodevice	vlan			# Disable 802.1Q VLAN pseudo-interface
+nodevice	tuntap			# Remove tun/tap network tunnels
+nodevice	gif			# Disable generic tunnel interface
+nodevice	bpf			# Remove Berkeley Packet Filter
+nodevice	cgem			# Drop Cadence GEM Ethernet driver
+nodevice	axidma			# Remove AXI DMA support used by cgem
+nodevice	xae			# Drop Xilinx AXI Ethernet driver
+nodevice	umass			# Remove USB mass storage driver
+nodevice	ahci			# Drop AHCI SATA controller support
+nodevice	nvme			# Remove NVMe core driver
+nodevice	nvd			# Drop NVMe disk device layer
+nodevice	scbus			# Remove CAM SCSI bus abstraction
+nodevice	da			# Drop direct-access disk driver
+nodevice	pass			# Remove CAM pass-through device
+nodevice	usbhid			# Drop USB HID transport layer
+nodevice	ukbd			# Remove USB keyboard driver
+nodevice	ehci			# Disable EHCI USB 2.0 controller
+nodevice	xhci			# Disable XHCI USB 3.0 controller
+nodevice	ohci			# Disable OHCI USB controller
+nodevice	uhci			# Disable UHCI USB controller
+nodevice    pci
+
+nooptions	CAM			# Disable the CAM SCSI subsystem
+nooptions	ATA_CAM		# Disable ATA over CAM integration
+
+makeoptions	MODULES_OVERRIDE=""	# Do not build or install any kernel modules
