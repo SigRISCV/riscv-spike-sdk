@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -eu
+
+dest=/tmp/gem5.readfile
+do_exec=1
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --no-exec)
+            do_exec=0
+            ;;
+        --help)
+            echo "usage: gem5-readfile [dest] [--no-exec]" >&2
+            exit 0
+            ;;
+        *)
+            dest="$1"
+            ;;
+    esac
+    shift
+done
+
+/sbin/m5 readfile > "$dest"
+
+if [ "$do_exec" -eq 1 ]; then
+    chmod 700 "$dest"
+fi
