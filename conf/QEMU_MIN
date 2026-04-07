@@ -7,6 +7,7 @@ ident		QEMU_MIN
 options 	HZ=100
 options 	ROOTDEVNAME=\"ufs:/dev/ufs/root\nufs:/dev/vtbd0\"
 
+nooptions   INET6
 nooptions	IPSEC_SUPPORT		# Remove IPsec loader support
 nooptions	SCTP_SUPPORT		# Remove SCTP loader support
 nooptions	TCP_OFFLOAD		# Drop TCP offload infrastructure
@@ -39,6 +40,10 @@ nooptions	INVARIANT_SUPPORT	# Disable invariant support helpers
 nooptions	WITNESS			# Disable lock order verification
 nooptions	WITNESS_SKIPSPIN	# Disable witness spinlock tracking
 
+nodevice    crypto
+nodevice    kbdmux
+nodevice    vt
+nodevice    vt_efifb
 nodevice	vtnet			# Omit VirtIO PCI Ethernet device
 nodevice	vlan			# Disable 802.1Q VLAN pseudo-interface
 nodevice	tuntap			# Remove tun/tap network tunnels
@@ -60,9 +65,13 @@ nodevice	ehci			# Disable EHCI USB 2.0 controller
 nodevice	xhci			# Disable XHCI USB 3.0 controller
 nodevice	ohci			# Disable OHCI USB controller
 nodevice	uhci			# Disable UHCI USB controller
-nodevice    pci
+nodevice    pci            # Disable PCI bus support
+nodevice    acpi           # Disable ACPI support
 
 nooptions	CAM			# Disable the CAM SCSI subsystem
 nooptions	ATA_CAM		# Disable ATA over CAM integration
 
 makeoptions	MODULES_OVERRIDE=""	# Do not build or install any kernel modules
+makeoptions	DEBUG=
+makeoptions WITH_CTF=0
+
