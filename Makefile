@@ -83,7 +83,7 @@ GEM5_FREEBSD_CPU_TYPE ?= atomic
 GEM5_FREEBSD_MEM_SIZE ?= 2GiB
 GEM5_FREEBSD_SYS_CLOCK ?= 1GHz
 GEM5_FREEBSD_MAX_TICKS ?= 0
-GEM5_FREEBSD_ROOT_MOUNTFROM ?= ufs:/dev/vtbd0
+GEM5_FREEBSD_ROOT_MOUNTFROM ?= ufs:/dev/ufs/root
 GEM5_FREEBSD_ROOTDEVNAME ?= ufs:/dev/ufs/root\\nufs:/dev/vtbd0
 GEM5_ARGS ?=
 GEM5_FREEBSD_EXTRA_ARGS ?=
@@ -223,6 +223,7 @@ freebsd_custom $(freebsd_custom_done): $(freebsd_rootfs)/root/.shrc
 .PHONY: disk-image
 disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
 	cp -r $(confdir)/freebsd_conf/* $(freebsd_rootfs)
+	touch $(freebsd_rootfs)/fastboot
 	python3 $(scriptdir)/get_mainfest.py $(freebsd_rootfs) $(freebsd_wrkdir)/METALOG.custom
 	cd $(freebsd_rootfs) && $(freebsd_wrkdir_legacy)/bin/makefs -t ffs \
 		-o version=2,label=root -o softupdates=1 -Z -b 2g -f 200k -R 4m -M 256m \
@@ -508,3 +509,8 @@ gem5-run-freebsd:
 		--rootdevname '$(GEM5_FREEBSD_ROOTDEVNAME)' \
 		--max-ticks $(GEM5_FREEBSD_MAX_TICKS) \
 		$(GEM5_FREEBSD_EXTRA_ARGS)
+
+.PHONY: gem5-link
+gem5-link:
+	python3 $(gem5_srcdir)/util/term/gem5term 3456
+
