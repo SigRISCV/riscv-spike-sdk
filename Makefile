@@ -89,7 +89,9 @@ GEM5_FREEBSD_CHECKPOINT_DIR ?=
 GEM5_FREEBSD_RESTORE_CHECKPOINT ?=
 GEM5_FREEBSD_READFILE ?=
 GEM5_ARGS ?=
+GEM5_FREEBSD_KERNEL_ARGS ?=
 GEM5_FREEBSD_EXTRA_ARGS ?=
+GEM5_OUTDIR ?= $(CURDIR)/m5out
 
 gmp_srcdir := $(srcdir)/cross/gmp
 gmp_wrkdir := $(wrkdir)/gmp
@@ -520,7 +522,8 @@ qemu-run:
 		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
 		-device virtio-blk-device,drive=drv \
 		-device virtio-rng-pci \
-		-virtfs local,path=/home/zyy/sigriscv/riscv-spike-sdk/benchmark/unixbench/UnixBench/src,mount_tag=unixbench_src,security_model=none
+		-append '-s'
+
 
 qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
@@ -533,8 +536,23 @@ qemu-link: $(gdb_native)
 	$(gdb_native) $(freebsd_kernel)
 
 .PHONY: gem5-run-freebsd
+
+gem5-checkpoint: GEM5_FREEBSD_CPU_TYPE = atomic
+gem5-checkpoint: GEM5_OUTDIR = $(CURDIR)/m5out-cpt
+gem5-checkpoint: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-cpt/checkpoints
+gem5-checkpoint: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-cpt/readfile
+gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
+
+gem5-restore: GEM5_FREEBSD_CPU_TYPE = atomic
+gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
+gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.5850298945000
+gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
+gem5-restore: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-rs/readfile
+gem5-restore: GEM5_FREEBSD_KERNEL_ARGS = -s
+
 gem5-run-freebsd: $(m5_cross)
-	$(gem5_bin) $(GEM5_ARGS) $(gem5_freebsd_config) \
+	$(gem5_bin) -d $(GEM5_OUTDIR) \
+		$(GEM5_ARGS) $(gem5_freebsd_config) \
 		--bootloader $(fw_jump) \
 		--kernel $(freebsd_kernel) \
 		--disk-image $(freebsd_rootfs_img) \
@@ -547,7 +565,11 @@ gem5-run-freebsd: $(m5_cross)
 		--restore-checkpoint '$(GEM5_FREEBSD_RESTORE_CHECKPOINT)' \
 		--readfile '$(GEM5_FREEBSD_READFILE)' \
 		--max-ticks $(GEM5_FREEBSD_MAX_TICKS) \
+		--kernel-args='$(GEM5_FREEBSD_KERNEL_ARGS)' \
 		$(GEM5_FREEBSD_EXTRA_ARGS)
+
+gem5-checkpoint: gem5-run-freebsd
+gem5-restore: gem5-run-freebsd
 
 .PHONY: gem5-link
 gem5-link:
