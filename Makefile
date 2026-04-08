@@ -543,7 +543,7 @@ gem5-checkpoint: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-cpt/checkpoints
 gem5-checkpoint: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-cpt/readfile
 gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
 
-gem5-restore: GEM5_FREEBSD_CPU_TYPE = atomic
+gem5-restore: GEM5_FREEBSD_CPU_TYPE = minor
 gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
 gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.5850298945000
 gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
