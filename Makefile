@@ -534,14 +534,16 @@ qemu-run:
 		-drive if=none,file=rootfs/freebsd_sysroot.img,id=rootdisk,format=raw \
 		-device virtio-blk-device,drive=rootdisk \
 		-drive if=none,file=rootfs/bench.img,id=benchdisk,format=raw \
-		-device virtio-blk-device,drive=benchdisk
+		-device virtio-blk-device,drive=benchdisk \
 		-device virtio-rng-pci
 
 qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
 		-kernel $(freebsd_kernel) \
-		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
-		-device virtio-blk-device,drive=drv \
+		-drive if=none,file=$(freebsd_rootfs_img),id=rootdisk,format=raw \
+		-device virtio-blk-device,drive=rootdisk \
+		-drive if=none,file=$(freebsd_bench_img),id=benchdisk,format=raw \
+		-device virtio-blk-device,drive=benchdisk \
 		-device virtio-rng-pci -S -s
 
 qemu-link: $(gdb_native)
@@ -557,7 +559,7 @@ gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
 
 gem5-restore: GEM5_FREEBSD_CPU_TYPE = minor
 gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
-gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.5850298945000
+gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.40421307104000
 gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
 gem5-restore: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-rs/readfile
 gem5-restore: GEM5_FREEBSD_KERNEL_ARGS = -s
@@ -568,6 +570,7 @@ gem5-run-freebsd: $(m5_cross)
 		--bootloader $(fw_jump) \
 		--kernel $(freebsd_kernel) \
 		--disk-image $(freebsd_rootfs_img) \
+		--bench-image $(freebsd_bench_img) \
 		--cpu-type $(GEM5_FREEBSD_CPU_TYPE) \
 		--sys-clock $(GEM5_FREEBSD_SYS_CLOCK) \
 		--mem-size $(GEM5_FREEBSD_MEM_SIZE) \
