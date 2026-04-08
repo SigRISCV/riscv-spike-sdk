@@ -33,7 +33,6 @@ freebsd_rootfs_img := $(freebsd_rootfs).img
 freebsd_rootfs_conf := QEMU_MIN
 freebsd_kernel_full := $(freebsd_wrkdir)/$(freebsd_srcdir)/riscv.riscv64/sys/$(freebsd_rootfs_conf)/kernel.full
 freebsd_kernel := $(freebsd_rootfs)/boot/kernel/kernel
-freebsd_bench := $(freebsd_rootfs)/opt
 freebsd_usr_local := $(freebsd_rootfs)/usr/local
 
 freebsd_world_done := $(freebsd_wrkdir)/.buildworld.done
@@ -43,13 +42,18 @@ freebsd_kernel_metalog := $(freebsd_rootfs)/METALOG.kernel
 freebsd_custom_done := $(freebsd_wrkdir)/.custom.done
 freebsd_change_flag := $(freebsd_wrkdir)/.change.flag
 
+freebsd_bench := $(topdir)/rootfs/bench
+freebsd_bench_img := $(freebsd_bench).img
+freebsd_bench_metalog := $(freebsd_wrkdir)/METALOG.bench
+freebsd_bench_root_img := $(freebsd_bench).root.img
+
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
 simple_sigriscv_test_dir := $(benchdir)/simple-sigriscv-test
 juliet_srcdir   := $(benchdir)/juliet-test-suite-c
 unixbench_install := $(freebsd_bench)/unixbench
 lmbench_install := $(freebsd_bench)/lmbench
-simple_sigriscv_test_install := $(freebsd_bench)/simple_sigriscv_test
+simple_sigriscv_test_install := $(freebsd_bench)/simple-sigriscv-test
 juliet_install  := $(freebsd_bench)/juliet
 juliet_wrkdir   := $(wrkdir)/juliet
 
@@ -111,7 +115,6 @@ m5_srcdir := $(gem5_srcdir)/util/m5
 m5_wrkdir := $(m5_srcdir)/build
 m5_result := $(m5_wrkdir)/riscv/out/m5
 m5_cross := $(freebsd_rootfs)/sbin/m5
-m5_scripts := $(confdir)/m5_conf
 
 .PHONY: llvm
 llvm $(toolchain_dest)/bin/clang: $(llvm_srcdir)
@@ -234,6 +237,8 @@ freebsd_custom $(freebsd_custom_done): $(freebsd_rootfs)/root/.shrc
 .PHONY: disk-image
 disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
 	cp -r $(confdir)/freebsd_conf/* $(freebsd_rootfs)
+	chmod 755 $(freebsd_rootfs)/usr/local/bin/*
+	mkdir -p $(freebsd_rootfs)/bench
 	touch $(freebsd_rootfs)/fastboot
 	python3 $(scriptdir)/get_mainfest.py $(freebsd_rootfs) $(freebsd_wrkdir)/METALOG.custom
 	cd $(freebsd_rootfs) && $(freebsd_wrkdir_legacy)/bin/makefs -t ffs \
@@ -246,6 +251,19 @@ disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_
 		-o $(freebsd_rootfs_img)
 	rm -f $(freebsd_rootfs).root.img
 	$(toolchain_dest)/bin/qemu-img info $(freebsd_rootfs).img
+
+.PHONY: bench-image
+bench-image $(freebsd_bench_img): $(freebsd_distribution_done) $(freebsd_bench)
+	python3 $(scriptdir)/get_mainfest.py $(freebsd_bench) $(freebsd_bench_metalog)
+	cd $(freebsd_bench) && $(freebsd_wrkdir_legacy)/bin/makefs -t ffs \
+		-o version=2,label=bench -o softupdates=1 -Z -b 1g -f 128k -R 4m -M 128m \
+		-B le -N $(freebsd_rootfs)/etc \
+		$(freebsd_bench_root_img) $(freebsd_bench_metalog)
+	cd $(freebsd_bench) && $(freebsd_wrkdir_legacy)/bin/mkimg -s gpt \
+		-p freebsd-ufs:=$(freebsd_bench_root_img) \
+		-o $(freebsd_bench_img)
+	rm -f $(freebsd_bench_root_img)
+	$(toolchain_dest)/bin/qemu-img info $(freebsd_bench_img)
 
 LLVM_CROSS_TOOLCHAIN := CC=$(toolchain_dest)/bin/clang \
 		AS=$(toolchain_dest)/bin/clang \
@@ -289,7 +307,7 @@ LLVM_CROSS_LDFLAGS := $(LLVM_CROSS_CFLAGS) -fuse-ld=lld \
 			--ld-path=$(toolchain_dest)/bin/ld.lld
 
 .PHONY: lmbench
-lmbench: $(lmbench_srcdir) $(freebsd_rootfs)
+lmbench: $(lmbench_srcdir)
 	make -C $(lmbench_srcdir) clean
 	make -C $(lmbench_srcdir) build \
 		OS=riscv-FreeBSD \
@@ -301,10 +319,9 @@ lmbench: $(lmbench_srcdir) $(freebsd_rootfs)
 	cp $(lmbench_srcdir)/bin/riscv-FreeBSD/* $(lmbench_install)/$(MODE)/
 	cp $(lmbench_srcdir)/src/*.c $(lmbench_install)/src/
 	cp $(lmbench_srcdir)/src/*.h $(lmbench_install)/src/
-	touch $(freebsd_change_flag)
 
 .PHONY: unixbench
-unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
+unixbench: $(unixbench_srcdir)
 	make -C $(unixbench_srcdir) clean
 	make -C $(unixbench_srcdir) \
 		OSNAME=freebsd \
@@ -319,10 +336,9 @@ unixbench: $(unixbench_srcdir) $(freebsd_rootfs)
 	cp $(unixbench_srcdir)/testdir/sort.src $(unixbench_install)/$(MODE)
 	cp $(unixbench_srcdir)/src/* $(unixbench_install)/src/
 	cp $(unixbench_srcdir)/.gdbinit $(unixbench_install)/$(MODE)/
-	touch $(freebsd_change_flag)
 
 .PHONY: juliet
-juliet: $(juliet_srcdir) $(freebsd_rootfs)
+juliet: $(juliet_srcdir)
 	mkdir -p $(juliet_wrkdir)
 	if [ -n "$(JULIET_BRANCH)" ]; then cd $(juliet_srcdir) && git checkout $(JULIET_BRANCH); fi
 	{ \
@@ -353,14 +369,13 @@ juliet: $(juliet_srcdir) $(freebsd_rootfs)
 	cp $(juliet_srcdir)/juliet-run.sh $(juliet_install)/$(MODE)/
 	sed -i 's|INPUT_FILE="/tmp/in.txt"|INPUT_FILE="/tmp/in.txt"; touch "$$INPUT_FILE"|' \
 		$(juliet_install)/$(MODE)/juliet-run.sh
-	touch $(freebsd_change_flag)
 
 
 .PHONY: simple_sigriscv_test
-simple_sigriscv_test: $(simple_sigriscv_test_dir) $(freebsd_rootfs)
+simple_sigriscv_test: $(simple_sigriscv_test_dir)
 	$(MAKE) -C $(simple_sigriscv_test_dir)
+	make -p $(freebsd_bench)
 	$(MAKE) -C $(simple_sigriscv_test_dir) install PREFIX=$(freebsd_bench)
-	touch $(freebsd_change_flag)
 
 LLVM_CROSS_TARGET := --prefix=$(freebsd_usr_local) \
 		--host=riscv64-unknown-freebsd16 \
@@ -446,10 +461,6 @@ cross-m5 $(m5_cross): $(m5_srcdir) $(toolchain_dest)/bin/clang $(freebsd_distrib
 	mkdir -p $(freebsd_rootfs)/sbin
 	cp $(m5_result) $(m5_cross)
 	chmod 755 $(m5_cross)
-	cp $(m5_scripts)/* $(freebsd_rootfs)/usr/bin/
-	chmod 755 $(freebsd_rootfs)/usr/bin/gem5-checkpoint \
-		$(freebsd_rootfs)/usr/bin/gem5-exit \
-		$(freebsd_rootfs)/usr/bin/gem5-readfile
 	touch $(freebsd_change_flag)
 
 fw_image $(fw_jump): $(opensbi_srcdir) $(toolchain_dest)/bin/clang
@@ -519,11 +530,12 @@ mrproper:
 qemu-run: 
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
 		-kernel $(freebsd_kernel) \
-		-drive if=none,file=$(freebsd_rootfs_img),id=drv,format=raw \
-		-device virtio-blk-device,drive=drv \
-		-device virtio-rng-pci \
-		-append '-s'
-
+		-append '-s' \
+		-drive if=none,file=rootfs/freebsd_sysroot.img,id=rootdisk,format=raw \
+		-device virtio-blk-device,drive=rootdisk \
+		-drive if=none,file=rootfs/bench.img,id=benchdisk,format=raw \
+		-device virtio-blk-device,drive=benchdisk
+		-device virtio-rng-pci
 
 qemu-debug: $(qemu) $(fw_jump) $(freebsd_rootfs_img)
 	$(qemu) -M virt -m 2048 -nographic -bios $(fw_jump) \
