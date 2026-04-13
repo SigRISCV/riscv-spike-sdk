@@ -35,3 +35,6 @@
 [submodule "repo/gem5"]
 	path = repo/gem5
 	url = git@github.com:SigRISCV/gem5.git
+[submodule "benchmark/coremark"]
+	path = benchmark/coremark
+	url = git@github.com:SigRISCV/coremark.git
