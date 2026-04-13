@@ -49,10 +49,12 @@ freebsd_bench_root_img := $(freebsd_bench).root.img
 
 lmbench_srcdir := $(benchdir)/lmbench
 unixbench_srcdir := $(benchdir)/unixbench/UnixBench
+coremark_srcdir := $(benchdir)/coremark
 simple_sigriscv_test_dir := $(benchdir)/simple-sigriscv-test
 juliet_srcdir   := $(benchdir)/juliet-test-suite-c
 unixbench_install := $(freebsd_bench)/unixbench
 lmbench_install := $(freebsd_bench)/lmbench
+coremark_install := $(freebsd_bench)/coremark
 simple_sigriscv_test_install := $(freebsd_bench)/simple-sigriscv-test
 juliet_install  := $(freebsd_bench)/juliet
 juliet_wrkdir   := $(wrkdir)/juliet
@@ -85,7 +87,7 @@ gem5_bin := $(toolchain_dest)/bin/gem5.opt
 gem5_freebsd_config := $(gem5_srcdir)/configs/sigriscv/freebsd.py
 GEM5_FREEBSD_CPU_TYPE ?= atomic
 GEM5_FREEBSD_MEM_SIZE ?= 2GiB
-GEM5_FREEBSD_SYS_CLOCK ?= 1GHz
+GEM5_FREEBSD_SYS_CLOCK ?= 10MHz
 GEM5_FREEBSD_MAX_TICKS ?= 0
 GEM5_FREEBSD_ROOT_MOUNTFROM ?= ufs:/dev/ufs/root
 GEM5_FREEBSD_ROOTDEVNAME ?= ufs:/dev/ufs/root\\nufs:/dev/vtbd0
@@ -337,6 +339,26 @@ unixbench: $(unixbench_srcdir)
 	cp $(unixbench_srcdir)/src/* $(unixbench_install)/src/
 	cp $(unixbench_srcdir)/.gdbinit $(unixbench_install)/$(MODE)/
 
+.PHONY: coremark
+coremark: $(coremark_srcdir)
+	make -C $(coremark_srcdir) clean
+	make -C $(coremark_srcdir) compile \
+		PORT_DIR=freebsd \
+		NO_LIBRT=1 \
+		ITERATIONS=0 \
+		REBUILD=1 \
+		$(LLVM_CROSS_TOOLCHAIN) \
+		XCFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g" \
+		LFLAGS_END="$(LLVM_CROSS_LDFLAGS)"
+	mkdir -p $(coremark_install)/src
+	mkdir -p $(coremark_install)/$(MODE)
+	cp $(coremark_srcdir)/coremark.exe $(coremark_install)/$(MODE)/
+	cp $(coremark_srcdir)/execute.sh $(coremark_install)/$(MODE)/
+	cp $(coremark_srcdir)/*.c $(coremark_install)/src/
+	cp $(coremark_srcdir)/*.h $(coremark_install)/src/
+	cp $(coremark_srcdir)/posix/core_portme.c $(coremark_install)/src/
+	cp $(coremark_srcdir)/posix/core_portme.h $(coremark_install)/src/
+
 .PHONY: juliet
 juliet: $(juliet_srcdir)
 	mkdir -p $(juliet_wrkdir)
@@ -559,7 +581,7 @@ gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
 
 gem5-restore: GEM5_FREEBSD_CPU_TYPE = minor
 gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
-gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.40421307104000
+gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.53779363500000
 gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
 gem5-restore: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-rs/readfile
 gem5-restore: GEM5_FREEBSD_KERNEL_ARGS = -s
