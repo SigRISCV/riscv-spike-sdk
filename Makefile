@@ -359,6 +359,8 @@ coremark: $(coremark_srcdir)
 	cp $(coremark_srcdir)/posix/core_portme.c $(coremark_install)/src/
 	cp $(coremark_srcdir)/posix/core_portme.h $(coremark_install)/src/
 
+include $(topdir)/Makefile.spec2006.inc
+
 .PHONY: juliet
 juliet: $(juliet_srcdir)
 	mkdir -p $(juliet_wrkdir)
@@ -581,7 +583,7 @@ gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
 
 gem5-restore: GEM5_FREEBSD_CPU_TYPE = minor
 gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
-gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.53779363500000
+gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.45331201300000
 gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
 gem5-restore: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-rs/readfile
 gem5-restore: GEM5_FREEBSD_KERNEL_ARGS = -s
