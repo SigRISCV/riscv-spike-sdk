@@ -1,3 +1,4 @@
 #!/bin/sh
 
+mount -u -w /
 mount -t ufs /dev/vtbd1p1 /bench
