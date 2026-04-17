@@ -37,6 +37,14 @@ spec2006_lbm_install_exe := $(spec2006_lbm_install)/$(MODE)_lbm
 spec2006_lbm_install_script := $(spec2006_lbm_install)/$(MODE)_run_lbm.sh
 spec2006_lbm_install_cfg := $(spec2006_lbm_install)/$(MODE)_spec2006.cfg
 
+spec2006_sjeng_srcdir := $(spec2006_srcdir)/benchspec/CPU2006/458.sjeng
+spec2006_sjeng_exe := $(spec2006_sjeng_srcdir)/exe/sjeng_base.$(spec2006_ext)
+spec2006_sjeng_install := $(spec2006_bench_root)/458.sjeng
+spec2006_sjeng_script_src := $(spec2006_srcdir)/scripts/run_sjeng.sh
+spec2006_sjeng_install_exe := $(spec2006_sjeng_install)/$(MODE)_sjeng
+spec2006_sjeng_install_script := $(spec2006_sjeng_install)/$(MODE)_run_sjeng.sh
+spec2006_sjeng_install_cfg := $(spec2006_sjeng_install)/$(MODE)_spec2006.cfg
+
 $(spec2006_cfg): $(spec2006_cfg_template)
 	mkdir -p $(spec2006_wrkdir)
 	sed \
@@ -70,6 +78,7 @@ $(eval $(call spec2006_install_rule,spec2006-mcf,429.mcf,$(spec2006_mcf_install)
 $(eval $(call spec2006_install_rule,spec2006-libquantum,462.libquantum,$(spec2006_libquantum_install),$(spec2006_libquantum_exe),$(spec2006_libquantum_install_exe),$(spec2006_libquantum_script_src),$(spec2006_libquantum_install_script),$(spec2006_libquantum_install_cfg),$(spec2006_libquantum_srcdir)))
 $(eval $(call spec2006_install_rule,spec2006-bzip2,401.bzip2,$(spec2006_bzip2_install),$(spec2006_bzip2_exe),$(spec2006_bzip2_install_exe),$(spec2006_bzip2_script_src),$(spec2006_bzip2_install_script),$(spec2006_bzip2_install_cfg),$(spec2006_bzip2_srcdir)))
 $(eval $(call spec2006_install_rule,spec2006-lbm,470.lbm,$(spec2006_lbm_install),$(spec2006_lbm_exe),$(spec2006_lbm_install_exe),$(spec2006_lbm_script_src),$(spec2006_lbm_install_script),$(spec2006_lbm_install_cfg),$(spec2006_lbm_srcdir)))
+$(eval $(call spec2006_install_rule,spec2006-sjeng,458.sjeng,$(spec2006_sjeng_install),$(spec2006_sjeng_exe),$(spec2006_sjeng_install_exe),$(spec2006_sjeng_script_src),$(spec2006_sjeng_install_script),$(spec2006_sjeng_install_cfg),$(spec2006_sjeng_srcdir)))
 
 .PHONY: spec2006
-spec2006: spec2006-mcf spec2006-libquantum spec2006-bzip2 spec2006-lbm
+spec2006: spec2006-mcf spec2006-libquantum spec2006-bzip2 spec2006-lbm spec2006-sjeng
