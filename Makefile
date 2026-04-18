@@ -22,8 +22,10 @@ toolchain_dest := $(CURDIR)/toolchain
 
 llvm_srcdir	 :=	$(srcdir)/llvm-project
 llvm_wrkdir	 :=	$(wrkdir)/llvm-project
+llvm_debug_wrkdir := $(wrkdir)/llvm-project-debug
 llvm_sysroot :=	$(toolchain_dest)/sysroot
 LLVM_VERSION :=  Release
+LLVM_DEBUG_VERSION := Debug
 
 freebsd_srcdir := $(srcdir)/freebsd
 freebsd_wrkdir := $(wrkdir)/freebsd
@@ -118,7 +120,7 @@ m5_wrkdir := $(m5_srcdir)/build
 m5_result := $(m5_wrkdir)/riscv/out/m5
 m5_cross := $(freebsd_rootfs)/sbin/m5
 
-.PHONY: llvm
+.PHONY: llvm llvm-debug
 llvm $(toolchain_dest)/bin/clang: $(llvm_srcdir)
 	mkdir -p $(llvm_wrkdir) $(toolchain_dest)
 	cd $(llvm_wrkdir); $(CMAKE) -G Ninja -DLLVM_ENABLE_PROJECTS="clang;lld" \ \
@@ -129,9 +131,25 @@ llvm $(toolchain_dest)/bin/clang: $(llvm_srcdir)
 		-DLLVM_DEFAULT_TARGET_TRIPLE=riscv64-unknown-linux-gnu \
 		-DLLVM_TARGETS_TO_BUILD="RISCV" \
 		-DDEFAULT_SYSROOT=$(llvm_sysroot) \
+		-DLLVM_USE_LINKER=lld \
 		$(llvm_srcdir)/llvm
 	free -h
 	$(CMAKE) --build $(llvm_wrkdir) --target install
+
+llvm-debug: $(llvm_srcdir)
+	mkdir -p $(llvm_debug_wrkdir) $(toolchain_dest)
+	cd $(llvm_debug_wrkdir); $(CMAKE) -G Ninja -DLLVM_ENABLE_PROJECTS="clang;lld" \ \
+		-DCMAKE_BUILD_TYPE:String=$(LLVM_DEBUG_VERSION) -DLLVM_ENABLE_ASSERTIONS=True \
+		-DLLVM_USE_SPLIT_DWARF=False \
+		-DLLVM_OPTIMIZED_TABLEGEN=False \
+		-DCMAKE_INSTALL_PREFIX=$(toolchain_dest) \
+		-DLLVM_DEFAULT_TARGET_TRIPLE=riscv64-unknown-linux-gnu \
+		-DLLVM_TARGETS_TO_BUILD="RISCV" \
+		-DDEFAULT_SYSROOT=$(llvm_sysroot) \
+		-DLLVM_USE_LINKER=lld \
+		$(llvm_srcdir)/llvm
+	free -h
+	$(CMAKE) --build $(llvm_debug_wrkdir) --target install
 
 FREEBSD_ENV := MAKEOBJDIRPREFIX=$(freebsd_wrkdir) \
 	X_COMPILER_TYPE=clang \
@@ -255,7 +273,7 @@ disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_
 	$(toolchain_dest)/bin/qemu-img info $(freebsd_rootfs).img
 
 .PHONY: bench-image
-bench-image $(freebsd_bench_img): $(freebsd_distribution_done) $(freebsd_bench)
+bench-image $(freebsd_bench_img):
 	python3 $(scriptdir)/get_mainfest.py $(freebsd_bench) $(freebsd_bench_metalog)
 	cd $(freebsd_bench) && $(freebsd_wrkdir_legacy)/bin/makefs -t ffs \
 		-o version=2,label=bench -o softupdates=1 -Z -b 1g -f 128k -R 4m -M 128m \
