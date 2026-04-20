@@ -4,6 +4,23 @@ spec2006_wrkdir := $(wrkdir)/spec2006
 spec2006_cfg := $(spec2006_wrkdir)/sigriscv-$(MODE).cfg
 spec2006_ext := sigriscv-$(MODE)
 spec2006_bench_root := $(freebsd_bench)/spec2006
+spec2006_makeflags ?= -j384
+
+spec2006_perlbench_srcdir := $(spec2006_srcdir)/benchspec/CPU2006/400.perlbench
+spec2006_perlbench_exe := $(spec2006_perlbench_srcdir)/exe/perlbench_base.$(spec2006_ext)
+spec2006_perlbench_install := $(spec2006_bench_root)/400.perlbench
+spec2006_perlbench_script_src := $(spec2006_srcdir)/scripts/run_perlbench.sh
+spec2006_perlbench_install_exe := $(spec2006_perlbench_install)/$(MODE)_perlbench
+spec2006_perlbench_install_script := $(spec2006_perlbench_install)/$(MODE)_run_perlbench.sh
+spec2006_perlbench_install_cfg := $(spec2006_perlbench_install)/$(MODE)_spec2006.cfg
+
+spec2006_gcc_srcdir := $(spec2006_srcdir)/benchspec/CPU2006/403.gcc
+spec2006_gcc_exe := $(spec2006_gcc_srcdir)/exe/gcc_base.$(spec2006_ext)
+spec2006_gcc_install := $(spec2006_bench_root)/403.gcc
+spec2006_gcc_script_src := $(spec2006_srcdir)/scripts/run_gcc.sh
+spec2006_gcc_install_exe := $(spec2006_gcc_install)/$(MODE)_gcc
+spec2006_gcc_install_script := $(spec2006_gcc_install)/$(MODE)_run_gcc.sh
+spec2006_gcc_install_cfg := $(spec2006_gcc_install)/$(MODE)_spec2006.cfg
 
 spec2006_mcf_srcdir := $(spec2006_srcdir)/benchspec/CPU2006/429.mcf
 spec2006_mcf_exe := $(spec2006_mcf_srcdir)/exe/mcf_base.$(spec2006_ext)
@@ -83,6 +100,7 @@ $(spec2006_cfg): $(spec2006_cfg_template)
 	sed \
 		-e 's|@EXT@|$(spec2006_ext)|g' \
 		-e 's|@NPROC@|$(shell nproc)|g' \
+		-e 's|@MAKEFLAGS@|$(spec2006_makeflags)|g' \
 		-e 's|@CC@|$(toolchain_dest)/bin/clang|g' \
 		-e 's|@CXX@|$(toolchain_dest)/bin/clang++|g' \
 		-e 's|@EXTRA_CFLAGS@|$(LLVM_CROSS_CFLAGS_NOWARN)|g' \
@@ -102,11 +120,13 @@ $(1): $(spec2006_cfg)
 	chmod +x $(7)
 	cp $(spec2006_cfg) $(8)
 	if [ -d $(9)/Docs ]; then mkdir -p $(3)/Docs && cp -r $(9)/Docs/. $(3)/Docs/; fi
-	cp $(9)/src/* $(3)/src/
+	cp -r $(9)/src/. $(3)/src/
 	rm -rf $(3)/data
 	cp -r $(9)/data $(3)/
 endef
 
+$(eval $(call spec2006_install_rule,spec2006-perlbench,400.perlbench,$(spec2006_perlbench_install),$(spec2006_perlbench_exe),$(spec2006_perlbench_install_exe),$(spec2006_perlbench_script_src),$(spec2006_perlbench_install_script),$(spec2006_perlbench_install_cfg),$(spec2006_perlbench_srcdir)))
+$(eval $(call spec2006_install_rule,spec2006-gcc,403.gcc,$(spec2006_gcc_install),$(spec2006_gcc_exe),$(spec2006_gcc_install_exe),$(spec2006_gcc_script_src),$(spec2006_gcc_install_script),$(spec2006_gcc_install_cfg),$(spec2006_gcc_srcdir)))
 $(eval $(call spec2006_install_rule,spec2006-mcf,429.mcf,$(spec2006_mcf_install),$(spec2006_mcf_exe),$(spec2006_mcf_install_exe),$(spec2006_mcf_script_src),$(spec2006_mcf_install_script),$(spec2006_mcf_install_cfg),$(spec2006_mcf_srcdir)))
 $(eval $(call spec2006_install_rule,spec2006-libquantum,462.libquantum,$(spec2006_libquantum_install),$(spec2006_libquantum_exe),$(spec2006_libquantum_install_exe),$(spec2006_libquantum_script_src),$(spec2006_libquantum_install_script),$(spec2006_libquantum_install_cfg),$(spec2006_libquantum_srcdir)))
 $(eval $(call spec2006_install_rule,spec2006-bzip2,401.bzip2,$(spec2006_bzip2_install),$(spec2006_bzip2_exe),$(spec2006_bzip2_install_exe),$(spec2006_bzip2_script_src),$(spec2006_bzip2_install_script),$(spec2006_bzip2_install_cfg),$(spec2006_bzip2_srcdir)))
@@ -118,4 +138,4 @@ $(eval $(call spec2006_install_rule,spec2006-milc,433.milc,$(spec2006_milc_insta
 $(eval $(call spec2006_install_rule,spec2006-specrand999,999.specrand,$(spec2006_specrand999_install),$(spec2006_specrand999_exe),$(spec2006_specrand999_install_exe),$(spec2006_specrand999_script_src),$(spec2006_specrand999_install_script),$(spec2006_specrand999_install_cfg),$(spec2006_specrand999_srcdir)))
 
 .PHONY: spec2006
-spec2006: spec2006-mcf spec2006-libquantum spec2006-bzip2 spec2006-lbm spec2006-sjeng spec2006-hmmer spec2006-milc spec2006-h264ref spec2006-specrand999
+spec2006: spec2006-perlbench spec2006-gcc spec2006-mcf spec2006-libquantum spec2006-bzip2 spec2006-lbm spec2006-sjeng spec2006-hmmer spec2006-milc spec2006-h264ref spec2006-specrand999
