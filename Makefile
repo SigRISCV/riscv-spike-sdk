@@ -4,9 +4,9 @@ RISCV ?= $(CURDIR)/toolchain
 PATH := $(RISCV)/bin:$(PATH)
 MODE ?= raw
 JULIET_BRANCH ?=
-RAW_ISA = rv64imafdc_zifencei_zicsr
+RAW_ISA = rv64imafd_zifencei_zicsr
 RAW_ABI = lp64d
-SIG_ISA = rv64imafdc_zifencei_zicsr_xsig0p1
+SIG_ISA = rv64imafd_zifencei_zicsr_xsig0p1
 SIG_ABI = lps64d
 CMAKE := cmake
 
@@ -255,7 +255,8 @@ freebsd_custom $(freebsd_custom_done): $(freebsd_rootfs)/root/.shrc
 	touch $(freebsd_change_flag)
 
 .PHONY: disk-image
-disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
+# disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
+disk-image $(freebsd_rootfs_img) :
 	cp -r $(confdir)/freebsd_conf/* $(freebsd_rootfs)
 	chmod 755 $(freebsd_rootfs)/usr/local/bin/*
 	mkdir -p $(freebsd_rootfs)/bench
@@ -332,7 +333,7 @@ lmbench: $(lmbench_srcdir)
 	make -C $(lmbench_srcdir) build \
 		OS=riscv-FreeBSD \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O0 -g" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g -fPIC -fPIE" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
 	mkdir -p $(lmbench_install)/src
 	mkdir -p $(lmbench_install)/$(MODE)
@@ -346,7 +347,7 @@ unixbench: $(unixbench_srcdir)
 	make -C $(unixbench_srcdir) \
 		OSNAME=freebsd \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g -fPIE -fPIC" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)" \
 		RAWCFLAGS="$(LLVM_CROSS_RAWCFLAGS)" \
 		RAWLDFLAGS="$(LLVM_CROSS_RAWLDFLAGS)"
@@ -601,7 +602,7 @@ gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
 
 gem5-restore: GEM5_FREEBSD_CPU_TYPE = minor
 gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
-gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.45331201300000
+gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.40803368800000
 gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
 gem5-restore: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-rs/readfile
 gem5-restore: GEM5_FREEBSD_KERNEL_ARGS = -s
@@ -630,4 +631,4 @@ gem5-restore: gem5-run-freebsd
 
 .PHONY: gem5-link
 gem5-link:
-	python3 $(gem5_srcdir)/util/term/gem5term 3456
+	python3 $(gem5_srcdir)/util/term/gem5term 3457
