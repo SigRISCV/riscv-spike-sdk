@@ -104,7 +104,7 @@ $(spec2006_cfg): $(spec2006_cfg_template)
 		-e 's|@CC@|$(toolchain_dest)/bin/clang|g' \
 		-e 's|@CXX@|$(toolchain_dest)/bin/clang++|g' \
 		-e 's|@EXTRA_CFLAGS@|$(LLVM_CROSS_CFLAGS_NOWARN)|g' \
-		-e 's|@COPTIMIZE@|-O1 -g -fPIE -fPIC|g' \
+		-e 's|@COPTIMIZE@|-O1 -g|g' \
 		-e 's|@EXTRA_LDFLAGS@|$(LLVM_CROSS_LDFLAGS)|g' \
 		$< > $@
 
