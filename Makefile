@@ -4,9 +4,9 @@ RISCV ?= $(CURDIR)/toolchain
 PATH := $(RISCV)/bin:$(PATH)
 MODE ?= raw
 JULIET_BRANCH ?=
-RAW_ISA = rv64imafd_zifencei_zicsr
+RAW_ISA = rv64imafdc_zifencei_zicsr
 RAW_ABI = lp64d
-SIG_ISA = rv64imafd_zifencei_zicsr_xsig0p1
+SIG_ISA = rv64imafdc_zifencei_zicsr_xsig0p1
 SIG_ABI = lps64d
 CMAKE := cmake
 
@@ -255,8 +255,7 @@ freebsd_custom $(freebsd_custom_done): $(freebsd_rootfs)/root/.shrc
 	touch $(freebsd_change_flag)
 
 .PHONY: disk-image
-# disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
-disk-image $(freebsd_rootfs_img) :
+disk-image $(freebsd_rootfs_img) : $(freebsd_distribution_done) $(freebsd_world_metalog) $(freebsd_kernel_metalog) $(freebsd_change_flag) $(freebsd_custom_done)
 	cp -r $(confdir)/freebsd_conf/* $(freebsd_rootfs)
 	chmod 755 $(freebsd_rootfs)/usr/local/bin/*
 	mkdir -p $(freebsd_rootfs)/bench
@@ -333,7 +332,7 @@ lmbench: $(lmbench_srcdir)
 	make -C $(lmbench_srcdir) build \
 		OS=riscv-FreeBSD \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g -fPIC -fPIE" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)"
 	mkdir -p $(lmbench_install)/src
 	mkdir -p $(lmbench_install)/$(MODE)
@@ -347,7 +346,7 @@ unixbench: $(unixbench_srcdir)
 	make -C $(unixbench_srcdir) \
 		OSNAME=freebsd \
 		$(LLVM_CROSS_TOOLCHAIN) \
-		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g -fPIE -fPIC" \
+		CFLAGS="$(LLVM_CROSS_CFLAGS_NOWARN) -O1 -g" \
 		LDFLAGS="$(LLVM_CROSS_LDFLAGS)" \
 		RAWCFLAGS="$(LLVM_CROSS_RAWCFLAGS)" \
 		RAWLDFLAGS="$(LLVM_CROSS_RAWLDFLAGS)"
@@ -556,7 +555,10 @@ gem5-create:
 .PHONY: gem5
 gem5 $(gem5_bin): $(gem5_srcdir)
 	mkdir -p $(gem5_wrkdir)
-	cd $(gem5_wrkdir) && scons -C $(gem5_srcdir) build/RISCV/gem5.opt -j$(shell nproc)
+	cd $(gem5_wrkdir) && \
+		scons -C $(gem5_srcdir) \
+		--linker=lld \
+		build/RISCV/gem5.opt -j$(shell nproc)
 	mkdir -p $(toolchain_dest)/bin
 	cp $(gem5_builddir)/gem5.opt $(gem5_bin)
 	ln -sf $(gem5_bin) $(toolchain_dest)/bin/gem5
@@ -602,7 +604,7 @@ gem5-checkpoint: GEM5_FREEBSD_KERNEL_ARGS = -s
 
 gem5-restore: GEM5_FREEBSD_CPU_TYPE = minor
 gem5-restore: GEM5_OUTDIR = $(CURDIR)/m5out-rs
-gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.40803368800000
+gem5-restore: GEM5_FREEBSD_RESTORE_CHECKPOINT = $(CURDIR)/m5out-cpt/checkpoints/cpt.43617460700000
 gem5-restore: GEM5_FREEBSD_CHECKPOINT_DIR = $(CURDIR)/m5out-rs/checkpoints
 gem5-restore: GEM5_FREEBSD_READFILE = $(CURDIR)/m5out-rs/readfile
 gem5-restore: GEM5_FREEBSD_KERNEL_ARGS = -s
