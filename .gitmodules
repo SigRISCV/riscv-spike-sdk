@@ -38,3 +38,7 @@
 [submodule "benchmark/coremark"]
 	path = benchmark/coremark
 	url = git@github.com:SigRISCV/coremark.git
+[submodule "benchmark/RIPE"]
+	path = benchmark/RIPE
+	url = https://github.com/SigRISCV/RIPE.git
+	branch = sigriscv
