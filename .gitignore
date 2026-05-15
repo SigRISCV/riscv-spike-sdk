@@ -19,3 +19,7 @@ compile_commands.json
 
 # debug
 log
+
+results
+m5out-cpt
+m5out-rs
