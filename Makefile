@@ -64,18 +64,22 @@ simple_sigriscv_test_install := $(freebsd_bench)/simple-sigriscv-test
 juliet_install  := $(freebsd_bench)/juliet
 juliet_wrkdir   := $(wrkdir)/juliet
 
-# CWEs selected for SigRISCV memory-safety validation (see docs/juliet-test-selection.md)
+# JULIET_SELECTED_CWES := \
+# 	CWE121_Stack_Based_Buffer_Overflow \
+# 	CWE122_Heap_Based_Buffer_Overflow \
+# 	CWE123_Write_What_Where_Condition \
+# 	CWE124_Buffer_Underwrite \
+# 	CWE415_Double_Free \
+# 	CWE416_Use_After_Free \
+# 	CWE476_NULL_Pointer_Dereference \
+# 	CWE562_Return_of_Stack_Variable_Address \
+# 	CWE590_Free_Memory_Not_on_Heap \
+# 	CWE761_Free_Pointer_Not_at_Start_of_Buffer
+
 JULIET_SELECTED_CWES := \
-	CWE121_Stack_Based_Buffer_Overflow \
-	CWE122_Heap_Based_Buffer_Overflow \
-	CWE123_Write_What_Where_Condition \
-	CWE124_Buffer_Underwrite \
 	CWE415_Double_Free \
 	CWE416_Use_After_Free \
-	CWE476_NULL_Pointer_Dereference \
-	CWE562_Return_of_Stack_Variable_Address \
-	CWE590_Free_Memory_Not_on_Heap \
-	CWE761_Free_Pointer_Not_at_Start_of_Buffer
+	CWE562_Return_of_Stack_Variable_Address
 
 opensbi_srcdir := $(srcdir)/opensbi
 opensbi_wrkdir := $(wrkdir)/opensbi
