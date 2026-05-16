@@ -1,0 +1,75 @@
+cmake_minimum_required(VERSION 3.6)
+
+# grab CWE name from the directory we're in
+get_filename_component(CWE_FOLDER "${CMAKE_SOURCE_DIR}" NAME)
+string(REGEX MATCH "^CWE[0-9]+" CWE_NAME "${CWE_FOLDER}")
+
+project("juliet-c-${CWE_NAME}")
+
+# prevent cmake from setting -O2 (for release, relwithdebinf, minsizerel, etc)
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g")
+set(CMAKE_C_FLAGS_RELEASE "-g")
+set(CMAKE_C_FLAGS_MINSIZEREL "-g")
+add_compile_options(-O0)
+
+option(PLACE_OUTPUT_IN_TOPLEVEL_DIR "Use TOPLEVEL_DIR/bin as the output for all test binaries" ON)
+set(TOPLEVEL_DIR "${CMAKE_SOURCE_DIR}/../..")
+if (PLACE_OUTPUT_IN_TOPLEVEL_DIR)
+    set(OUTPUT_DIR "bin" CACHE STRING "output directory relative to top-level juliet directory")
+    set(CMAKE_BINARY_DIR "${TOPLEVEL_DIR}/${OUTPUT_DIR}")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CWE_NAME}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/support")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/support")
+else()
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
+set(SUPPORT_DIR "${TOPLEVEL_DIR}/testcasesupport")
+add_library(support STATIC "${SUPPORT_DIR}/io.c")
+# std_thread.c excluded: none of the selected 10 CWEs use threading (CWE366 is not selected)
+include_directories("${SUPPORT_DIR}")
+link_libraries(support pthread m)
+add_definitions(-DINCLUDEMAIN)
+
+# move the script to run tests into the top-level directory
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/juliet-run.sh"
+                   COMMAND "${CMAKE_COMMAND}" -E copy "${TOPLEVEL_DIR}/juliet-run.sh" "${CMAKE_BINARY_DIR}/juliet-run.sh"
+                   DEPENDS "${TOPLEVEL_DIR}/juliet-run.sh"
+)
+add_custom_target(copy-run-script ALL DEPENDS "${CMAKE_BINARY_DIR}/juliet-run.sh")
+
+# SigRISCV: collect only C files (exclude C++ to avoid clang++ ABI complications)
+# Exclude only Windows-specific files. wchar_t C testcases are valid on FreeBSD
+# and should remain in the Juliet build.
+file(GLOB_RECURSE WINDOWS_FILES CWE*w32*.c CWE*w32*.h)
+file(GLOB_RECURSE SOURCE_FILES CWE*.c)
+list(REMOVE_ITEM SOURCE_FILES ${WINDOWS_FILES} "")
+
+foreach(SOURCE_FILE ${SOURCE_FILES})
+  get_filename_component(SOURCE_NAME "${SOURCE_FILE}" NAME)
+  get_filename_component(SOURCE_DIRECTORY "${SOURCE_FILE}" DIRECTORY)
+
+  string(REGEX MATCH "^CWE[0-9]+_.+__.+_[0-9][0-9]" EXECUTABLE_NAME "${SOURCE_NAME}")
+
+  if(NOT TARGET "${EXECUTABLE_NAME}-good")
+    # collect all .c source files corresponding to this test
+    set(EXECUTABLE_SOURCES ${SOURCE_FILES})
+    list(FILTER EXECUTABLE_SOURCES INCLUDE REGEX "^${SOURCE_DIRECTORY}/${EXECUTABLE_NAME}")
+
+    add_executable("${EXECUTABLE_NAME}-good" ${EXECUTABLE_SOURCES})
+    set_target_properties("${EXECUTABLE_NAME}-good"
+      PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/good"
+      COMPILE_DEFINITIONS OMITBAD
+    )
+
+    add_executable("${EXECUTABLE_NAME}-bad" ${EXECUTABLE_SOURCES})
+    set_target_properties("${EXECUTABLE_NAME}-bad"
+      PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bad"
+      COMPILE_DEFINITIONS OMITGOOD
+    )
+  endif()
+endforeach()
