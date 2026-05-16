@@ -380,6 +380,23 @@ coremark: $(coremark_srcdir)
 	cp $(coremark_srcdir)/posix/core_portme.c $(coremark_install)/src/
 	cp $(coremark_srcdir)/posix/core_portme.h $(coremark_install)/src/
 
+.PHONY: ripebench
+ripebench: $(ripebench_srcdir)
+	mkdir -p $(ripebench_builddir)
+	cd $(ripebench_builddir) && $(toolchain_dest)/bin/clang \
+		$(LLVM_CROSS_CFLAGS_NOWARN) -O0 -g \
+		-fno-stack-protector -fno-omit-frame-pointer -fno-pie \
+		$(ripebench_srcdir)/source/ripe_attack_generator.c \
+		$(LLVM_CROSS_LDFLAGS) -no-pie \
+		-o $(ripebench_builddir)/ripe_attack_generator
+	mkdir -p $(ripebench_install)/src
+	mkdir -p $(ripebench_install)/$(MODE)
+	cp $(ripebench_builddir)/ripe_attack_generator $(ripebench_install)/$(MODE)/
+	cp $(ripebench_srcdir)/ripe-run.sh $(ripebench_install)/$(MODE)/
+	chmod 755 $(ripebench_install)/$(MODE)/ripe-run.sh
+	cp $(ripebench_srcdir)/source/*.c $(ripebench_install)/src/
+	cp $(ripebench_srcdir)/source/*.h $(ripebench_install)/src/
+
 include $(topdir)/Makefile.spec2006.inc
 
 .PHONY: juliet
